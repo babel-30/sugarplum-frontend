@@ -9,13 +9,11 @@ const isLocalHost =
 // ===============================
 // Backend base URL
 // - Local dev  -> http://127.0.0.1:3000
-// - Deployed   -> your Render backend URL
-//   (replace the placeholder below)
+// - Deployed   -> Render backend URL
 // ===============================
 
-// ⬇️ REPLACE this with your actual Render backend URL
-//    Example: "https://spc-backend.onrender.com"
-const RENDER_BACKEND_BASE = "https://YOUR-RENDER-BACKEND-URL.onrender.com";
+// ✅ Use your actual Render backend URL here
+const RENDER_BACKEND_BASE = "https://sugarplum-backend.onrender.com";
 
 // This is what the rest of the site will use:
 const API_BASE = isLocalHost
