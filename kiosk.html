@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kiosk Mode – Sugar Plum Creations</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="kiosk">
+    <!-- Shared floral header with logo -->
+    <header class="header">
+      <div class="header-brand">
+        <img
+          src="spc-logo-round.png"
+          alt="Sugar Plum Creations logo"
+          class="header-logo-img"
+        />
+        <a href="kiosk.html" class="brand-link">
+          <span class="brand-logo-text">Sugar Plum Creations</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main kiosk content (JS shows/hides this vs. splash) -->
+    <main id="kiosk-main">
+      <!-- Kiosk hero text -->
+      <section class="kiosk-hero">
+        <h2>Browse Our On-Hand Apparel</h2>
+        <p>
+          View available T-Shirts, Hoodies, and Sweatshirts by size and color.
+          Ask us when you’re ready to check out.
+        </p>
+      </section>
+
+      <!-- Type filters + search/size/color -->
+      <div id="kiosk-filters">
+        <div class="kiosk-filter-row">
+          <button data-filter="all" class="active">All</button>
+          <button data-filter="T-Shirts">T-Shirts</button>
+          <button data-filter="Hoodies">Hoodies</button>
+          <button data-filter="Sweatshirts">Sweatshirts</button>
+        </div>
+
+        <div class="kiosk-filter-row kiosk-extra-filters">
+          <input
+            type="text"
+            id="kiosk-search"
+            placeholder="Search design..."
+            autocomplete="off"
+          />
+
+          <select id="kiosk-size-filter">
+            <option value="">All Sizes</option>
+            <!-- Options filled dynamically -->
+          </select>
+
+          <select id="kiosk-color-filter">
+            <option value="">All Colors</option>
+            <!-- Options filled dynamically -->
+          </select>
+
+          <button id="kiosk-clear-filters">Clear Filters</button>
+        </div>
+      </div>
+
+      <!-- Audience filters row -->
+      <section id="kiosk-audience-filters">
+        <button data-audience="all" class="active">All</button>
+        <button data-audience="Men/Unisex">Men / Unisex</button>
+        <button data-audience="Women">Women</button>
+        <button data-audience="Kids">Kids</button>
+      </section>
+
+      <!-- Product grid -->
+      <div id="kiosk-grid"></div>
+    </main>
+
+    <!-- Shared image modal -->
+    <div id="image-modal" class="image-modal hidden">
+      <div class="image-modal-content">
+        <button class="image-modal-close" aria-label="Close">
+          &times;
+        </button>
+        <img
+          id="image-modal-img"
+          src=""
+          alt="Enlarged product image"
+        />
+        <p id="image-modal-caption"></p>
+      </div>
+    </div>
+
+    <!-- Splash screen for inactivity -->
+    <div id="kiosk-splash" class="kiosk-splash hidden">
+      <div class="kiosk-splash-panel">
+        <img
+          src="spc-logo-round.png"
+          alt="Sugar Plum Creations logo"
+          class="kiosk-splash-logo-img"
+        />
+        <h1>Browse our on-hand apparel!</h1>
+        <p>Tap anywhere to begin</p>
+      </div>
+    </div>
+
+    <!-- ORDER MATTERS (config.js MUST load first) -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

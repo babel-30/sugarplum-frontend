@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sugar Plum Creations</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Shared floral header -->
+    <header class="header">
+      <div class="header-brand">
+        <img
+          src="spc-logo-round.png"
+          alt="Sugar Plum Creations logo"
+          class="header-logo-img"
+        />
+        <a href="index.html" class="brand-link">
+          <span class="brand-logo-text">Sugar Plum Creations</span>
+        </a>
+      </div>
+      <nav class="header-nav">
+        <a href="index.html" class="nav-link nav-link-active">Home</a>
+        <a href="#shop" class="nav-link">Shop</a>
+        <!-- kiosk link intentionally removed; kiosk is for direct link / QR -->
+      </nav>
+    </header>
+
+    <!-- Announcement bar (populated from /admin/config) -->
+    <section class="announcement-bar" id="announcement-bar">
+      <div class="announcement-inner">
+        <span id="announcement-text"></span>
+      </div>
+    </section>
+
+    <!-- Shop Splash Overlay (controlled via admin config) -->
+    <section id="shop-splash" class="shop-splash hidden">
+      <div class="shop-splash-inner">
+        <img
+          src="spc-logo-round.png"
+          alt="Sugar Plum Creations logo"
+          class="shop-splash-logo"
+        />
+        <h2 class="shop-splash-title">Online Shop Temporarily Closed</h2>
+        <p id="shop-splash-message">
+          <!-- Filled from admin config (event / inventory / custom message) -->
+        </p>
+      </div>
+    </section>
+
+    <main>
+      <!-- HERO -->
+      <section class="hero">
+        <h2>Welcome to Our Apparel Shop</h2>
+        <p>
+          Locally made on the Mississippi Gulf Coast. Looking for a custom
+          design or bulk order? Reach out and we’ll be happy to help.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#shop" class="hero-button">Shop Our Catalog</a>
+          <a
+            href="mailto:sugarplum.abel@gmail.com?subject=Custom%20Apparel%20Request"
+            class="hero-button hero-button-secondary"
+          >
+            Message Us
+          </a>
+        </div>
+      </section>
+
+      <!-- SHOP SECTION -->
+      <section id="shop">
+        <h2>Shop</h2>
+
+        <!-- Type / category filters -->
+        <div id="category-filters">
+          <button data-filter="all" class="active">All</button>
+          <button data-filter="T-Shirts">T-Shirts</button>
+          <button data-filter="Hoodies">Hoodies</button>
+          <button data-filter="Sweatshirts">Sweatshirts</button>
+        </div>
+
+        <!-- Cart bar -->
+        <div id="cart-bar-container">
+          <div id="cart-bar">
+            <span>
+              Cart: <span id="cart-count">0</span> items — $
+              <span id="cart-total">0.00</span>
+            </span>
+            <a href="cart.html" class="view-cart-button">View Cart</a>
+          </div>
+        </div>
+
+        <!-- Audience filters row -->
+        <section id="audience-filters">
+          <button data-audience="all" class="active">All</button>
+          <button data-audience="Men/Unisex">Men / Unisex</button>
+          <button data-audience="Women">Women</button>
+          <button data-audience="Kids">Kids</button>
+        </section>
+
+        <!-- Product grid -->
+        <div id="product-grid"></div>
+      </section>
+    </main>
+
+    <!-- ORDER MATTERS (config.js MUST load first) -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

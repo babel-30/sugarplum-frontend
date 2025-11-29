@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your Cart – Sugar Plum Creations</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <!-- Shared header -->
+    <header class="header">
+      <div class="header-brand">
+        <img
+          src="spc-logo-round.png"
+          alt="Sugar Plum Creations logo"
+          class="header-logo-img"
+        />
+        <a href="index.html" class="brand-link">
+          <span class="brand-logo-text">Sugar Plum Creations</span>
+        </a>
+      </div>
+
+      <nav class="header-nav">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="index.html#shop" class="nav-link">Shop</a>
+      </nav>
+    </header>
+
+    <main class="cart-page">
+      <h1>Your Cart</h1>
+
+      <section class="cart-layout">
+        <!-- LEFT COLUMN: cart items -->
+        <div id="cart-details" class="cart-items">
+          <!-- JS injects cart lines here -->
+        </div>
+
+        <!-- RIGHT COLUMN: summary + customer info + actions -->
+        <aside class="cart-summary-panel">
+          <div id="cart-summary">
+            <div id="free-shipping-banner" class="free-shipping-banner">
+              <!-- JS will fill this -->
+            </div>
+
+            <!-- Totals section -->
+            <div class="cart-summary-row">
+              <span>Total items:</span>
+              <span id="cart-count">0</span>
+            </div>
+
+            <div class="cart-summary-row">
+              <span>Subtotal:</span>
+              <span>$<span id="cart-total">0.00</span></span>
+            </div>
+
+            <div class="cart-summary-row">
+              <span>Shipping:</span>
+              <span>$<span id="cart-shipping">0.00</span></span>
+            </div>
+
+            <div class="cart-summary-row cart-summary-grand">
+              <span>Order Total:</span>
+              <span>$<span id="cart-grand-total">0.00</span></span>
+            </div>
+
+            <!-- Customer details -->
+            <div class="cart-customer-section">
+              <h2>Customer Info</h2>
+
+              <label class="cart-field">
+                <span>Name <span class="required">*</span></span>
+                <input
+                  type="text"
+                  id="checkout-name"
+                  placeholder="First and last name"
+                  autocomplete="name"
+                />
+              </label>
+
+              <label class="cart-field">
+                <span>Email <span class="required">*</span></span>
+                <input
+                  type="email"
+                  id="checkout-email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                />
+              </label>
+
+              <label class="cart-field">
+                <span>Phone</span>
+                <input
+                  type="tel"
+                  id="checkout-phone"
+                  placeholder="(optional)"
+                  autocomplete="tel"
+                />
+              </label>
+            </div>
+
+            <!-- Shipping section -->
+            <div class="cart-shipping-section">
+              <h2>Shipping Address</h2>
+
+              <label class="cart-field">
+                <span>Address Line 1</span>
+                <input
+                  type="text"
+                  id="checkout-address1"
+                  placeholder="Street address"
+                  autocomplete="address-line1"
+                />
+              </label>
+
+              <label class="cart-field">
+                <span>Address Line 2</span>
+                <input
+                  type="text"
+                  id="checkout-address2"
+                  placeholder="Apt, suite, etc. (optional)"
+                  autocomplete="address-line2"
+                />
+              </label>
+
+              <label class="cart-field">
+                <span>City</span>
+                <input
+                  type="text"
+                  id="checkout-city"
+                  placeholder="City"
+                  autocomplete="address-level2"
+                />
+              </label>
+
+              <div class="cart-field-row">
+                <label class="cart-field cart-field-half">
+                  <span>State</span>
+                  <input
+                    type="text"
+                    id="checkout-state"
+                    placeholder="State"
+                    autocomplete="address-level1"
+                  />
+                </label>
+
+                <label class="cart-field cart-field-half">
+                  <span>ZIP</span>
+                  <input
+                    type="text"
+                    id="checkout-zip"
+                    placeholder="ZIP"
+                    autocomplete="postal-code"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="cart-actions">
+              <a href="index.html#shop" class="continue-shopping">
+                Continue Shopping
+              </a>
+
+              <button id="checkout-btn">Checkout</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <!-- ORDER MATTERS (config.js MUST load first) -->
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
