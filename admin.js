@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (res.ok) {
-        // Optionally could read admin info:
+        // Optionally read admin info:
         // const data = await res.json();
         // console.log("Admin session:", data);
         return true;
@@ -45,11 +45,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const popupStatusEl =
     document.getElementById("popup-status") || bannerStatusEl;
 
+  // --- Shipping settings ---
+  const shippingFlatRateInput = document.getElementById("shippingFlatRate");
+  const freeShippingThresholdInput = document.getElementById(
+    "freeShippingThreshold"
+  );
+  const shippingStatusEl = document.getElementById("shipping-status");
+
   // --- Orders table ---
   const refreshOrdersBtn = document.getElementById("refresh-orders");
   const ordersTbody = document.getElementById("orders-tbody");
 
-  // --- Monthly archive ---
+  // --- Archive download ---
+  // (Button text still says "Archive Current Month" in HTML,
+  //  but now it downloads all archived orders as a ZIP.)
   const archiveBtn = document.getElementById("archive-current-month");
   const archiveStatusEl = document.getElementById("archive-status");
 
@@ -66,6 +75,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const flagsSection = document.getElementById("flags-section");
   const flagsToggleBtn = document.getElementById("flags-toggle-btn");
 
+  // --- Catalog / Inventory sync buttons ---
+  const syncCatalogBtn = document.getElementById("btn-sync-catalog");
+  const syncInventoryBtn = document.getElementById("btn-sync-inventory");
+  const syncStatusEl = document.getElementById("sync-status");
+
   // We keep the latest products from /admin/products here
   let adminProducts = [];
 
@@ -79,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  BANNER + POPUP CONFIG
+  //  BANNER + POPUP + SHIPPING CONFIG
   // =======================
   async function loadBannerConfig() {
     if (!bannerTextInput || !bannerVisibleCheckbox) return;
@@ -110,10 +124,30 @@ document.addEventListener("DOMContentLoaded", () => {
         popupCustomTextInput.value = data.popupCustomText || "";
       }
 
+      // Shipping settings
+      if (
+        shippingFlatRateInput &&
+        typeof data.shippingFlatRate !== "undefined" &&
+        data.shippingFlatRate !== null
+      ) {
+        shippingFlatRateInput.value = String(data.shippingFlatRate);
+      }
+      if (
+        freeShippingThresholdInput &&
+        typeof data.freeShippingThreshold !== "undefined" &&
+        data.freeShippingThreshold !== null
+      ) {
+        freeShippingThresholdInput.value = String(
+          data.freeShippingThreshold
+        );
+      }
+
       showStatus(bannerStatusEl, "Banner & popup loaded.", false);
+      showStatus(shippingStatusEl, "Shipping settings loaded.", false);
     } catch (err) {
       console.error("Error loading banner config:", err);
       showStatus(bannerStatusEl, "Failed to load banner settings.", true);
+      showStatus(shippingStatusEl, "Failed to load shipping settings.", true);
     }
   }
 
@@ -137,7 +171,19 @@ document.addEventListener("DOMContentLoaded", () => {
       payload.popupCustomText = popupCustomTextInput.value || "";
     }
 
+    // Include shipping settings if present
+    if (shippingFlatRateInput) {
+      const v = parseFloat(shippingFlatRateInput.value);
+      payload.shippingFlatRate = isNaN(v) ? 0 : v;
+    }
+
+    if (freeShippingThresholdInput) {
+      const v = parseFloat(freeShippingThresholdInput.value);
+      payload.freeShippingThreshold = isNaN(v) ? 0 : v;
+    }
+
     showStatus(bannerStatusEl, "Saving...", false);
+    showStatus(shippingStatusEl, "Saving shipping settings...", false);
 
     try {
       const res = await fetch(`${API_BASE}/admin/config`, {
@@ -147,19 +193,22 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to save banner config");
+        const msg = data.error || "Failed to save banner config";
+        throw new Error(msg);
       }
 
-      const data = await res.json();
-      console.log("Saved banner/popup config:", data);
+      console.log("Saved banner/popup/shipping config:", data);
       showStatus(bannerStatusEl, "Settings saved.", false);
       showStatus(popupStatusEl, "Popup settings saved.", false);
+      showStatus(shippingStatusEl, "Shipping settings saved.", false);
     } catch (err) {
       console.error("Error saving banner config:", err);
       showStatus(bannerStatusEl, "Failed to save banner settings.", true);
       showStatus(popupStatusEl, "Failed to save popup settings.", true);
+      showStatus(shippingStatusEl, "Failed to save shipping settings.", true);
     }
   }
 
@@ -172,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!Array.isArray(orders) || orders.length === 0) {
       ordersTbody.innerHTML = `
         <tr>
-          <td colspan="6">No orders found.</td>
+          <td colspan="7">No orders found.</td>
         </tr>
       `;
       return;
@@ -214,6 +263,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <option value="CANCELLED" ${
                   statusValue === "CANCELLED" ? "selected" : ""
                 }>CANCELLED</option>
+                <option value="ARCHIVED" ${
+                  statusValue === "ARCHIVED" ? "selected" : ""
+                }>ARCHIVED</option>
               </select>
             </td>
             <td>
@@ -223,6 +275,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 placeholder="Tracking #"
                 value="${trackingValue.replace(/"/g, "&quot;")}"
               />
+            </td>
+            <td>
+              <button type="button" class="order-packing-btn">
+                Packing List
+              </button>
             </td>
             <td>
               <button type="button" class="order-save-btn">
@@ -242,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ordersTbody.innerHTML = `
       <tr>
-        <td colspan="6">Loading orders…</td>
+        <td colspan="7">Loading orders…</td>
       </tr>
     `;
 
@@ -254,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.status === 401) {
         ordersTbody.innerHTML = `
           <tr>
-            <td colspan="6">Not authorized. Please log in again.</td>
+            <td colspan="7">Not authorized. Please log in again.</td>
           </tr>
         `;
         return;
@@ -271,24 +328,33 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error loading orders:", err);
       ordersTbody.innerHTML = `
         <tr>
-          <td colspan="6">Error loading orders.</td>
+          <td colspan="7">Error loading orders.</td>
         </tr>
       `;
     }
   }
 
-  // Save handler for status + tracking
+  // Save handler for status + tracking + packing slip
   if (ordersTbody) {
     ordersTbody.addEventListener("click", async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
-      if (!target.classList.contains("order-save-btn")) return;
 
       const row = target.closest("tr");
       if (!row) return;
-
       const orderId = row.getAttribute("data-order-id");
       if (!orderId) return;
+
+      // --- Packing List PDF button ---
+      if (target.classList.contains("order-packing-btn")) {
+        // Open packing slip PDF in a new tab for download/print
+        const url = `${API_BASE}/admin/orders/${orderId}/packing-slip`;
+        window.open(url, "_blank");
+        return;
+      }
+
+      // --- Save button (status + tracking) ---
+      if (!target.classList.contains("order-save-btn")) return;
 
       const statusSelect = row.querySelector(".order-status-input");
       const trackingInput = row.querySelector(".order-tracking-input");
@@ -326,6 +392,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("Order updated:", data);
         target.textContent = "Saved";
+
+        // If the order was archived, reload the list so it disappears
+        if (status === "ARCHIVED") {
+          await loadOrders();
+        }
+
         setTimeout(() => {
           target.textContent = originalText;
           target.disabled = false;
@@ -342,47 +414,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  MONTHLY ARCHIVE
+  //  ARCHIVE DOWNLOAD (ZIP OF ARCHIVED ORDERS)
   // =======================
-  async function runMonthlyArchive() {
-    if (!archiveStatusEl) return;
-
-    showStatus(archiveStatusEl, "Starting monthly archive...");
-
-    try {
-      const res = await fetch(`${API_BASE}/admin/monthly-archive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // send admin cookie
-        body: JSON.stringify({}), // server uses current month
-      });
-
-      if (res.status === 401) {
-        showStatus(
-          archiveStatusEl,
-          "Not authorized. Please log in again.",
-          true
-        );
-        return;
-      }
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const msg = data.error || "Archive failed.";
-        showStatus(archiveStatusEl, msg, true);
-        return;
-      }
-
-      showStatus(archiveStatusEl, data.message || "Archive complete.");
-    } catch (err) {
-      console.error("Error running monthly archive:", err);
+  function downloadOrderArchive() {
+    if (archiveStatusEl) {
       showStatus(
         archiveStatusEl,
-        "Error running monthly archive.",
-        true
+        "Preparing archive download… (your browser should prompt to save a ZIP file)",
+        false
       );
     }
+
+    // Open in a new tab/window so you stay on the admin page,
+    // but the browser can handle the ZIP download.
+    window.open(`${API_BASE}/admin/orders/archive-download`, "_blank");
   }
 
   // =======================
@@ -525,64 +570,155 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function saveAdminProducts() {
-    if (!flagsTbody) return;
+  if (!flagsTbody) return;
 
-    showStatus(flagsStatusEl, "Saving product flags...", false);
+  showStatus(flagsStatusEl, "Saving product flags...", false);
 
-    const rows = flagsTbody.querySelectorAll("tr[data-product-id]");
-    const updates = [];
+  const rows = flagsTbody.querySelectorAll('tr[data-product-id]');
+  const updates = [];
 
-    rows.forEach((row) => {
-      const id = row.getAttribute("data-product-id");
-      if (!id) return;
+  rows.forEach((row) => {
+    const id = row.getAttribute("data-product-id");
+    if (!id) return;
 
-      const pinToTopEl = row.querySelector(".flag-pinToTop");
-      const hideOnlineEl = row.querySelector(".flag-hideOnline");
-      const hideKioskEl = row.querySelector(".flag-hideKiosk");
-      const ribbonTypeEl = row.querySelector(".flag-ribbonType");
-      const ribbonTextEl = row.querySelector(".flag-ribbonCustomText");
+    const pinToTopEl = row.querySelector(".flag-pinToTop");
+    const hideOnlineEl = row.querySelector(".flag-hideOnline");
+    const hideKioskEl = row.querySelector(".flag-hideKiosk");
+    const ribbonTypeEl = row.querySelector(".flag-ribbonType");
+    const ribbonTextEl = row.querySelector(".flag-ribbonCustomText");
 
-      const ribbonType = ribbonTypeEl ? ribbonTypeEl.value || "none" : "none";
-      const ribbonCustomText = ribbonTextEl ? ribbonTextEl.value || "" : "";
+    const ribbonType = ribbonTypeEl ? ribbonTypeEl.value || "none" : "none";
+    const ribbonCustomText = ribbonTextEl ? ribbonTextEl.value || "" : "";
 
-      const isNew = ribbonType === "new";
-      const isFeatured = ribbonType === "featured";
+    const isNew = ribbonType === "new";
+    const isFeatured = ribbonType === "featured";
 
-      const flags = {
-        isNew,
-        isFeatured,
-        pinToTop: !!(pinToTopEl && pinToTopEl.checked),
-        hideOnline: !!(hideOnlineEl && hideOnlineEl.checked),
-        hideKiosk: !!(hideKioskEl && hideKioskEl.checked),
-        ribbonType,
-        ribbonCustomText,
-      };
+    const flags = {
+      isNew,
+      isFeatured,
+      pinToTop: !!(pinToTopEl && pinToTopEl.checked),
+      hideOnline: !!(hideOnlineEl && hideOnlineEl.checked),
+      hideKiosk: !!(hideKioskEl && hideKioskEl.checked),
+      ribbonType,
+      ribbonCustomText,
+    };
 
-      updates.push({ id, flags });
+    updates.push({ id, flags });
+  });
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/products`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ products: updates }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const msg = data.error || "Failed to save product flags.";
+      showStatus(flagsStatusEl, msg, true);
+      return;
+    }
+
+    console.log("Saved productConfig:", data);
+    showStatus(flagsStatusEl, "Product flags saved.", false);
+  } catch (err) {
+    console.error("Error saving product flags:", err);
+    showStatus(flagsStatusEl, "Error saving product flags.", true);
+  }
+}
+
+
+  // =======================
+  //  CATALOG / INVENTORY SYNC
+  // =======================
+  async function callSyncEndpoint(path, label) {
+    if (!syncStatusEl) return;
+
+    showStatus(syncStatusEl, `${label}…`, false);
+
     try {
-      const res = await fetch(`${API_BASE}/admin/products`, {
-        method: "PUT",
+      const res = await fetch(`${API_BASE}${path}`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ products: updates }),
+        body: JSON.stringify({}),
       });
+
+      if (res.status === 401) {
+        showStatus(
+          syncStatusEl,
+          "Not authorized. Please log in again.",
+          true
+        );
+        return;
+      }
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const msg = data.error || "Failed to save product flags.";
-        showStatus(flagsStatusEl, msg, true);
+        const msg = data.error || `${label} failed.`;
+        showStatus(syncStatusEl, msg, true);
         return;
       }
 
-      console.log("Saved productConfig:", data);
-      showStatus(flagsStatusEl, "Product flags saved.", false);
+      console.log("Sync result:", data);
+      showStatus(syncStatusEl, `${label} completed.`, false);
     } catch (err) {
-      console.error("Error saving product flags:", err);
-      showStatus(flagsStatusEl, "Error saving product flags.", true);
+      console.error("Sync error:", err);
+      showStatus(syncStatusEl, `${label} failed (network error).`, true);
     }
+  }
+
+  // =======================
+  //  RETURN TO TOP BUTTON
+  // =======================
+  function initScrollToTopButton() {
+    // Avoid duplicates
+    if (document.getElementById("scrollToTopBtn")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "scrollToTopBtn";
+    btn.type = "button";
+    btn.textContent = "↑ Top";
+
+    // Basic inline styles; you can override in CSS if you want
+    Object.assign(btn.style, {
+      position: "fixed",
+      right: "1.25rem",
+      bottom: "1.25rem",
+      zIndex: "999",
+      padding: "0.5rem 0.9rem",
+      borderRadius: "999px",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: "0.9rem",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+      opacity: "0",
+      pointerEvents: "none",
+      transition: "opacity 0.2s ease-in-out",
+      backgroundColor: "#b42ea0",
+      color: "#ffffff",
+    });
+
+    document.body.appendChild(btn);
+
+    btn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 300) {
+        btn.style.opacity = "1";
+        btn.style.pointerEvents = "auto";
+      } else {
+        btn.style.opacity = "0";
+        btn.style.pointerEvents = "none";
+      }
+    });
   }
 
   // =======================
@@ -597,7 +733,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (archiveBtn) {
-    archiveBtn.addEventListener("click", runMonthlyArchive);
+    archiveBtn.addEventListener("click", downloadOrderArchive);
   }
 
   if (saveFlagsBtn) {
@@ -613,6 +749,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (syncCatalogBtn) {
+    syncCatalogBtn.addEventListener("click", () =>
+      callSyncEndpoint("/admin/sync/catalog", "Catalog + inventory sync")
+    );
+  }
+
+  if (syncInventoryBtn) {
+    syncInventoryBtn.addEventListener("click", () =>
+      callSyncEndpoint("/admin/sync/inventory", "Inventory-only sync")
+    );
+  }
+
   // =======================
   //  INITIAL LOAD
   // =======================
@@ -623,5 +771,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadBannerConfig();
     loadOrders();
     loadAdminProducts();
+    initScrollToTopButton();
   })();
 });

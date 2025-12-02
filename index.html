@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -72,8 +72,8 @@
       <section id="shop">
         <h2>Shop</h2>
 
-        <!-- Type / category filters -->
-        <div id="category-filters">
+        <!-- Type / category filters (mirrors kiosk type row) -->
+        <div id="category-filters" class="kiosk-filter-row">
           <button data-filter="all" class="active">All</button>
           <button data-filter="T-Shirts">T-Shirts</button>
           <button data-filter="Hoodies">Hoodies</button>
@@ -91,6 +91,28 @@
           </div>
         </div>
 
+        <!-- Search / size / color filters (mirror kiosk extra row) -->
+        <div id="shop-filters" class="kiosk-filter-row kiosk-extra-filters">
+          <input
+            type="text"
+            id="shop-search"
+            placeholder="Search design..."
+            autocomplete="off"
+          />
+
+          <select id="shop-size-filter">
+            <option value="">All Sizes</option>
+            <!-- Filled dynamically -->
+          </select>
+
+          <select id="shop-color-filter">
+            <option value="">All Colors</option>
+            <!-- Filled dynamically -->
+          </select>
+
+          <button id="shop-clear-filters">Clear Filters</button>
+        </div>
+
         <!-- Audience filters row -->
         <section id="audience-filters">
           <button data-audience="all" class="active">All</button>
@@ -104,8 +126,38 @@
       </section>
     </main>
 
+    <!-- MOVE-TO-TOP BUTTON (handled by script.js) -->
+    <button
+      id="moveToTopBtn"
+      class="move-to-top-btn"
+      aria-label="Scroll back to top"
+    >
+      ↑ Top
+    </button>
+
     <!-- ORDER MATTERS (config.js MUST load first) -->
     <script src="config.js"></script>
     <script src="script.js"></script>
+
+    <!-- Floating Social Buttons -->
+    <div class="floating-social">
+      <a
+        href="https://www.facebook.com/profile.php?id=61554519952229"
+        class="social-btn"
+        target="_blank"
+        rel="noopener"
+      >
+        <img src="facebook.png" alt="Facebook" />
+      </a>
+
+      <a
+        href="https://www.tiktok.com/@sugar.plum.creatio?is_from_webapp=1&sender_device=pc"
+        class="social-btn"
+        target="_blank"
+        rel="noopener"
+      >
+        <img src="tiktok.png" alt="TikTok" />
+      </a>
+    </div>
   </body>
 </html>

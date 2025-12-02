@@ -1,8 +1,12 @@
-// ========== CONFIG ==========
+// ========== CONFIG ========== 
 
 // Shipping config defaults (front-end; overwritten by admin settings on cart page)
-let SHIPPING_FLAT_RATE = 6.95;       // example USPS-ish flat rate for ~3 shirts
-let FREE_SHIPPING_THRESHOLD = 75;    // free shipping when subtotal >= $75
+let SHIPPING_FLAT_RATE = 6.95; // example USPS-ish flat rate for ~3 shirts
+let FREE_SHIPPING_THRESHOLD = 75; // free shipping when subtotal >= $75
+
+// Front-end fee + tax estimates (mirrors backend intent)
+const CONVENIENCE_FEE_RATE = 0.03; // 3% card fee
+const SALES_TAX_RATE = 0.07; // 7% sales tax estimate
 
 // Global products array (filled from /products)
 let products = [];
@@ -108,7 +112,14 @@ let activeAudienceFilter = "all"; // "all", "Men/Unisex", "Women", "Kids"
 let kioskTypeFilter = "all";
 let kioskAudienceFilter = "all";
 
+// ===== Shop filter DOM elements (to mirror kiosk) =====
+const shopSearchInput = document.getElementById("shop-search");
+const shopSizeFilterSelect = document.getElementById("shop-size-filter");
+const shopColorFilterSelect = document.getElementById("shop-color-filter");
+const shopClearFiltersBtn = document.getElementById("shop-clear-filters");
+
 // ========== MASTER SIZE & COLOR LISTS (CAPABILITY) ==========
+// Expanded to include extended sizes and common aliases for 2X, 3X, 4X, 5X
 const MASTER_SIZES = [
   "NB",
   "0-3M",
@@ -131,8 +142,16 @@ const MASTER_SIZES = [
   "M",
   "L",
   "XL",
+  "2X",
   "2XL",
+  "XXL",
+  "3X",
   "3XL",
+  "XXXL",
+  "4X",
+  "4XL",
+  "5X",
+  "5XL",
 ];
 
 const MASTER_COLORS = [
@@ -158,6 +177,8 @@ const MASTER_COLORS = [
 ];
 
 // ========== CART PERSISTENCE ==========
+// NOTE: your backend keeps amounts authoritative; this is a visual estimate.
+
 const CART_KEY = "spc_cart_v1";
 
 function loadCartFromStorage() {
@@ -181,14 +202,25 @@ function saveCartToStorage() {
 let cart = loadCartFromStorage();
 
 // Common cart UI elements (may be null on some pages)
-const cartCountEl = document.getElementById("cart-count");
-const cartTotalEl = document.getElementById("cart-total");
-const cartDetailsEl = document.getElementById("cart-details");
 
-// Optional extras for shipping + grand total
-const cartShippingEl = document.getElementById("cart-shipping");       // span/div to show shipping
-const cartGrandTotalEl = document.getElementById("cart-grand-total"); // span/div to show subtotal + shipping
-const freeShipBannerEl = document.getElementById("free-shipping-banner"); // little banner text on cart page
+// Header bubble (index.html)
+const cartCountEl = document.getElementById("cart-count");   // little bubble count
+const cartTotalEl = document.getElementById("cart-total");   // little bubble subtotal (no $)
+
+// Cart page summary (cart.html)
+const cartSummaryItemsEl   = document.getElementById("summary-total-items");
+const cartSummarySubtotalEl = document.getElementById("summary-subtotal");
+const cartDetailsEl        = document.getElementById("cart-details");
+
+// Cart page money breakdown
+const cartShippingEl    = document.getElementById("summary-shipping");
+const cartGrandTotalEl  = document.getElementById("summary-order-total");
+const cartFeeEl         = document.getElementById("summary-convenience-fee");
+const cartTaxEl         = document.getElementById("summary-sales-tax");
+
+
+// Free shipping banner
+const freeShipBannerEl = document.getElementById("free-shipping-banner");
 
 // Optional checkout customer fields (cart page)
 const checkoutNameInput = document.getElementById("checkout-name");
@@ -208,6 +240,7 @@ function computeShipping(subtotal) {
 }
 
 // ========== CHECKOUT HANDLER ==========
+// NOTE: backend still recomputes true fee/tax; this is just visual guidance.
 async function handleCheckoutClick() {
   if (!cart || !cart.length) {
     alert("Your cart is empty.");
@@ -235,7 +268,7 @@ async function handleCheckoutClick() {
     return;
   }
 
-  // Recompute totals here to keep in sync with backend
+  // Recompute totals here to keep in sync with backend (shipping estimate only)
   const merchandiseTotal = cart.reduce(
     (sum, item) => sum + item.qty * item.price,
     0
@@ -251,7 +284,7 @@ async function handleCheckoutClick() {
       type: item.type,
       color: item.color,
       size: item.size,
-      // frontend price is in dollars
+      printSide: item.printSide || null, // new field for Front / Back etc.
       price: Math.round(item.price * 100), // cents
       quantity: item.qty || 1,
       squareVariationId: item.squareVariationId || null,
@@ -260,7 +293,7 @@ async function handleCheckoutClick() {
     const body = {
       cart: payloadCart,
       customer,
-      shippingTotalCents,
+      shippingTotalCents, // backend currently ignores this, but harmless
     };
 
     console.log("FRONTEND raw cart:", cart);
@@ -338,115 +371,7 @@ function initImageModalHandlers() {
   });
 }
 
-// ========== CART RENDERING ==========
-function renderCartDetails() {
-  if (!cartDetailsEl) return;
-
-  if (cart.length === 0) {
-    cartDetailsEl.innerHTML = `<p class="cart-empty">Your cart is empty.</p>`;
-    return;
-  }
-
-  const linesHtml = cart
-    .map((item, index) => {
-      const lineTotal = (item.qty * item.price).toFixed(2);
-      const typeLabel =
-        item.type && item.type !== "Other" ? item.type + " • " : "";
-      const colorLabel = item.color ? item.color : "";
-      const sizeLabel = item.size ? item.size : "";
-
-      const imgSrc =
-        item.image || "https://via.placeholder.com/80x80?text=No+Image";
-
-      return `
-        <div class="cart-line">
-          <div class="cart-line-image">
-            <img src="${imgSrc}" alt="${item.name}" />
-          </div>
-          <div class="cart-line-main">
-            <div class="cart-line-name cart-name-below">${item.name}</div>
-            <div class="cart-line-meta cart-meta-purple">
-              ${typeLabel}${colorLabel}${
-        colorLabel && sizeLabel ? " • " : ""
-      }${sizeLabel}
-            </div>
-          </div>
-          <div class="cart-line-controls">
-            <button class="cart-dec" data-index="${index}">-</button>
-            <span class="cart-qty">${item.qty}</span>
-            <button class="cart-inc" data-index="${index}">+</button>
-            <span class="cart-line-total">$${lineTotal}</span>
-            <button class="cart-remove" data-index="${index}">x</button>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  cartDetailsEl.innerHTML = linesHtml;
-
-  // Wire up +/-/remove buttons
-  cartDetailsEl.querySelectorAll(".cart-inc").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = parseInt(btn.dataset.index, 10);
-      cart[idx].qty += 1;
-      saveCartToStorage();
-      updateCartDisplay();
-    });
-  });
-
-  cartDetailsEl.querySelectorAll(".cart-dec").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = parseInt(btn.dataset.index, 10);
-      cart[idx].qty -= 1;
-      if (cart[idx].qty <= 0) {
-        cart.splice(idx, 1);
-      }
-      saveCartToStorage();
-      updateCartDisplay();
-    });
-  });
-
-  cartDetailsEl.querySelectorAll(".cart-remove").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = parseInt(btn.dataset.index, 10);
-      cart.splice(idx, 1);
-      saveCartToStorage();
-      updateCartDisplay();
-    });
-  });
-}
-
-function updateCartDisplay() {
-  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  const totalPrice = cart.reduce(
-    (sum, item) => sum + item.qty * item.price,
-    0
-  );
-
-  const shipping = computeShipping(totalPrice);
-  const grandTotal = totalPrice + shipping;
-
-  if (cartCountEl) cartCountEl.textContent = totalItems;
-  if (cartTotalEl) cartTotalEl.textContent = totalPrice.toFixed(2);
-  if (cartShippingEl) cartShippingEl.textContent = shipping.toFixed(2);
-  if (cartGrandTotalEl) cartGrandTotalEl.textContent = grandTotal.toFixed(2);
-
-  if (freeShipBannerEl) {
-    if (totalPrice <= 0) {
-      freeShipBannerEl.textContent =
-        `Free shipping on orders over $${FREE_SHIPPING_THRESHOLD.toFixed(2)}.`;
-    } else if (totalPrice >= FREE_SHIPPING_THRESHOLD) {
-      freeShipBannerEl.textContent = "You’re getting FREE shipping!";
-    } else {
-      const diff = FREE_SHIPPING_THRESHOLD - totalPrice;
-      freeShipBannerEl.textContent =
-        `Add $${diff.toFixed(2)} more for FREE shipping.`;
-    }
-  }
-
-  renderCartDetails();
-}
+// ========== CART RENDERING & HELPERS ==========
 
 // Helper: find Square variation ID for a given product/color/size
 function findSquareVariationId(product, color, size) {
@@ -462,55 +387,6 @@ function findSquareVariationId(product, color, size) {
   });
 
   return match ? match.id || null : null;
-}
-
-function addToCart(product, color, size, qty) {
-  if (qty <= 0) return;
-
-  const existing = cart.find(
-    (item) =>
-      item.id === product.id && item.color === color && item.size === size
-  );
-
-  if (existing) {
-    existing.qty += qty;
-  } else {
-    const variationId = findSquareVariationId(product, color, size);
-
-    cart.push({
-      id: product.id,
-      name: product.name,
-      type: product.type,
-      price: product.price, // dollars
-      color,
-      size,
-      qty,
-      image: product.image || null,
-      squareVariationId: variationId,
-    });
-  }
-
-  saveCartToStorage();
-  updateCartDisplay();
-}
-
-// ========== STOCK STATUS HELPER ==========
-function getStockStatus(product) {
-  const inv = typeof product.inventory === "number" ? product.inventory : 0;
-
-  if (inv <= 0) {
-    return { text: "Out of stock", cssClass: "stock-out" };
-  } else if (inv > 0 && inv <= 3) {
-    return {
-      text: `Low stock (${inv} left)`,
-      cssClass: "stock-low",
-    };
-  } else {
-    return {
-      text: `${inv} in stock`,
-      cssClass: "stock-in",
-    };
-  }
 }
 
 // Helper: pull qty out of a variation from any of several possible fields
@@ -537,6 +413,307 @@ function extractQtyFromVariation(v) {
     }
   }
   return null;
+}
+
+// NEW: infer print location from variation name (Square puts it in the name)
+function inferPrintLocationFromName(name) {
+  if (!name) return null;
+  const lower = name.toLowerCase();
+
+  if (lower.includes("front & back") || lower.includes("front and back")) {
+    return "Front & Back";
+  }
+  // Check "front" before "back" so we don't mis-read "Front & Back"
+  if (lower.includes("front")) return "Front";
+  if (lower.includes("back")) return "Back";
+
+  return null;
+}
+
+// Get maximum allowed quantity for a specific cart item based on inventory
+function getMaxAvailableQtyForCartItem(cartItem) {
+  if (!cartItem) return 9999;
+
+  const product = products.find((p) => p.id === cartItem.id);
+  if (!product) return 9999;
+
+  // Prefer variant-level inventory if we can match a variation
+  if (Array.isArray(product.squareVariations)) {
+    const colorLower = (cartItem.color || "").toLowerCase();
+    const sizeLower = (cartItem.size || "").toLowerCase();
+
+    const variation = product.squareVariations.find((v) => {
+      const vColor = (v.color || "").toLowerCase();
+      const vSize = (v.size || "").toLowerCase();
+      return vColor === colorLower && vSize === sizeLower;
+    });
+
+    if (variation) {
+      const q = extractQtyFromVariation(variation);
+      if (typeof q === "number" && q > 0) {
+        return q;
+      }
+    }
+  }
+
+  // Fall back to product-level inventory
+  if (typeof product.inventory === "number" && product.inventory > 0) {
+    return product.inventory;
+  }
+
+  // If unknown, treat as effectively unlimited
+  return 9999;
+}
+
+// Centralized cart quantity update (respects stock limits)
+function updateCartItemQuantity(index, newQty) {
+  const item = cart[index];
+  if (!item) return;
+
+  if (newQty <= 0) {
+    // Remove item if qty goes to 0 or below
+    cart.splice(index, 1);
+  } else {
+    const maxQty = getMaxAvailableQtyForCartItem(item);
+    let finalQty = newQty;
+    if (finalQty > maxQty) {
+      finalQty = maxQty;
+      alert("You’ve reached the maximum available stock for this item.");
+    }
+    item.qty = finalQty;
+  }
+
+  saveCartToStorage();
+  updateCartDisplay();
+}
+
+function renderCartDetails() {
+  if (!cartDetailsEl) return;
+
+  if (cart.length === 0) {
+    cartDetailsEl.innerHTML = `<p class="cart-empty">Your cart is empty.</p>`;
+    return;
+  }
+
+  const linesHtml = cart
+    .map((item, index) => {
+      const lineTotal = (item.qty * item.price).toFixed(2);
+
+      const metaBits = [];
+      if (item.type && item.type !== "Other") metaBits.push(item.type);
+      if (item.color) metaBits.push(item.color);
+      if (item.size) metaBits.push(item.size);
+      if (item.printSide) metaBits.push(`${item.printSide} print`);
+      const metaText = metaBits.join(" • ");
+
+      const imgSrc =
+        item.image || "https://via.placeholder.com/80x80?text=No+Image";
+
+      return `
+        <div class="cart-line">
+          <div class="cart-line-image">
+            <img src="${imgSrc}" alt="${item.name}" />
+          </div>
+          <div class="cart-line-main">
+            <div class="cart-line-name cart-name-below">${item.name}</div>
+            <div class="cart-line-meta cart-meta-purple">
+              ${metaText}
+            </div>
+          </div>
+          <div class="cart-line-controls">
+            <button class="cart-dec" data-index="${index}">-</button>
+            <span class="cart-qty">${item.qty}</span>
+            <button class="cart-inc" data-index="${index}">+</button>
+            <span class="cart-line-total">$${lineTotal}</span>
+            <button class="cart-remove" data-index="${index}">x</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  cartDetailsEl.innerHTML = linesHtml;
+
+  // Wire up +/-/remove buttons via stock–aware helper
+  cartDetailsEl.querySelectorAll(".cart-inc").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      const item = cart[idx];
+      if (!item) return;
+      updateCartItemQuantity(idx, item.qty + 1);
+    });
+  });
+
+  cartDetailsEl.querySelectorAll(".cart-dec").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      const item = cart[idx];
+      if (!item) return;
+      updateCartItemQuantity(idx, item.qty - 1);
+    });
+  });
+
+  cartDetailsEl.querySelectorAll(".cart-remove").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      updateCartItemQuantity(idx, 0);
+    });
+  });
+}
+
+function updateCartDisplay() {
+  const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.qty * item.price,
+    0
+  );
+
+  // ----- Shipping -----
+  const shipping = computeShipping(subtotal);
+
+  // ----- State-based tax: MS only, everyone else 0% -----
+  let localTaxRate = 0; // default: no tax
+  const stateInput = document.getElementById("checkout-state");
+  if (stateInput) {
+    const stateVal = stateInput.value.trim().toUpperCase();
+    if (stateVal === "MS" || stateVal === "MISSISSIPPI") {
+      localTaxRate = SALES_TAX_RATE; // 0.07
+    }
+  }
+
+  // ----- 3% Convenience Fee: on (items + shipping) -----
+  const feeBase = subtotal + shipping;
+  const convenienceFee =
+    CONVENIENCE_FEE_RATE > 0
+      ? Number((feeBase * CONVENIENCE_FEE_RATE).toFixed(2))
+      : 0;
+
+  // ----- Estimated Sales Tax: on (items + shipping), NOT the fee -----
+  const taxBase = subtotal + shipping;
+  const estimatedTax =
+    localTaxRate > 0
+      ? Number((taxBase * localTaxRate).toFixed(2))
+      : 0;
+
+  // ----- Grand Total (estimate) -----
+  const grandTotal = subtotal + shipping + convenienceFee + estimatedTax;
+
+  // ===== Header bubble (index.html) =====
+  if (cartCountEl) cartCountEl.textContent = totalItems;
+  if (cartTotalEl) cartTotalEl.textContent = subtotal.toFixed(2); // no $ here; HTML already has it
+
+  // ===== Cart page summary (cart.html) =====
+  if (cartSummaryItemsEl) cartSummaryItemsEl.textContent = totalItems;
+  if (cartSummarySubtotalEl) {
+    cartSummarySubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  }
+  if (cartShippingEl) {
+    cartShippingEl.textContent = `$${shipping.toFixed(2)}`;
+  }
+  if (cartFeeEl) {
+    cartFeeEl.textContent = `$${convenienceFee.toFixed(2)}`;
+  }
+  if (cartTaxEl) {
+    cartTaxEl.textContent = `$${estimatedTax.toFixed(2)}`;
+  }
+  if (cartGrandTotalEl) {
+    cartGrandTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
+  }
+
+  // Free shipping banner logic still based on MERCH subtotal
+  if (freeShipBannerEl) {
+    if (subtotal <= 0) {
+      freeShipBannerEl.textContent = `Free shipping on orders over $${FREE_SHIPPING_THRESHOLD.toFixed(
+        2
+      )}.`;
+    } else if (subtotal >= FREE_SHIPPING_THRESHOLD) {
+      freeShipBannerEl.textContent = "You’re getting FREE shipping!";
+    } else {
+      const diff = FREE_SHIPPING_THRESHOLD - subtotal;
+      freeShipBannerEl.textContent = `Add $${diff.toFixed(
+        2
+      )} more for FREE shipping.`;
+    }
+  }
+
+  renderCartDetails();
+}
+
+
+// ========== STOCK STATUS HELPER ==========
+function getStockStatus(product) {
+  const inv = typeof product.inventory === "number" ? product.inventory : 0;
+
+  if (inv <= 0) {
+    return { text: "Out of stock", cssClass: "stock-out" };
+  } else if (inv > 0 && inv <= 3) {
+    return {
+      text: `Low stock (${inv} left)`,
+      cssClass: "stock-low",
+    };
+  } else {
+    return {
+      text: `${inv} in stock`,
+      cssClass: "stock-in",
+    };
+  }
+}
+
+// Add-to-cart with stock limit enforcement
+function addToCart(product, color, size, qty, printSide = null) {
+  if (qty <= 0) return;
+
+  const existing = cart.find(
+    (item) =>
+      item.id === product.id &&
+      item.color === color &&
+      item.size === size &&
+      (item.printSide || null) === (printSide || null)
+  );
+
+  // Build a temporary "cart item" shape for stock lookup
+  const tempItem = {
+    id: product.id,
+    color,
+    size,
+  };
+  const maxAvailable = getMaxAvailableQtyForCartItem(tempItem);
+
+  const currentQty = existing ? existing.qty : 0;
+  let requestedTotal = currentQty + qty;
+
+  if (requestedTotal > maxAvailable) {
+    requestedTotal = maxAvailable;
+    alert("You’ve reached the maximum available stock for this item.");
+  }
+
+  const amountToAdd = requestedTotal - currentQty;
+  if (amountToAdd <= 0) {
+    // Already at or above max; nothing more to add
+    return;
+  }
+
+  if (existing) {
+    existing.qty = requestedTotal;
+  } else {
+    const variationId = findSquareVariationId(product, color, size);
+
+    cart.push({
+      id: product.id,
+      name: product.name,
+      type: product.type,
+      price: product.price, // dollars
+      color,
+      size,
+      printSide: printSide || null,
+      qty: requestedTotal,
+      image: product.image || null,
+      squareVariationId: variationId,
+    });
+  }
+
+  saveCartToStorage();
+  updateCartDisplay();
 }
 
 // ========== TRANSFORM BACKEND PRODUCTS ==========
@@ -589,8 +766,7 @@ function transformSquareProducts(squareItems) {
       flags.isFeatured ||
       (item.isFeatured !== undefined ? item.isFeatured : !!meta.isFeatured);
     const isNew =
-      flags.isNew ||
-      (item.isNew !== undefined ? item.isNew : !!meta.isNew);
+      flags.isNew || (item.isNew !== undefined ? item.isNew : !!meta.isNew);
     const pinToTop =
       flags.pinToTop ||
       (item.pinToTop !== undefined ? item.pinToTop : !!meta.pinToTop);
@@ -598,6 +774,7 @@ function transformSquareProducts(squareItems) {
     let basePrice = 0;
     const sizeSet = new Set();
     const colorSet = new Set();
+    const printLocationSet = new Set();
     let totalInventory = 0;
 
     for (const v of variations) {
@@ -608,20 +785,37 @@ function transformSquareProducts(squareItems) {
       if (v.size) sizeSet.add(v.size);
       if (v.color) colorSet.add(v.color);
 
+      // derive print location from name if needed
+      let printLocation = v.printLocation || inferPrintLocationFromName(v.name);
+      if (printLocation) {
+        v.printLocation = printLocation;
+        printLocationSet.add(printLocation);
+      }
+
       const q = extractQtyFromVariation(v);
       if (typeof q === "number" && q > 0) {
         totalInventory += q;
       }
     }
 
-    const sizes = sizeSet.size > 0 ? Array.from(sizeSet) : ["Standard"];
-    const colors = colorSet.size > 0 ? Array.from(colorSet) : ["Default"];
+    // Build sizes/colors from the variation sets; if missing, fallback
+    let sizes = sizeSet.size > 0 ? Array.from(sizeSet) : ["Standard"];
+    let colors = colorSet.size > 0 ? Array.from(colorSet) : ["Default"];
+
+    // Sort sizes/colors using master lists so extended sizes stay in order
+    if (typeof sortByMasterOrder === "function") {
+      sizes = sortByMasterOrder(sizes, MASTER_SIZES);
+      colors = sortByMasterOrder(colors, MASTER_COLORS);
+    }
 
     // If we couldn't compute inventory from variations, fall back to item.inventory if present
     let inventory = totalInventory;
     if (inventory === 0 && typeof item.inventory === "number") {
       inventory = item.inventory;
     }
+
+    const printLocations =
+      printLocationSet.size > 0 ? Array.from(printLocationSet) : [];
 
     return {
       id: item.id,
@@ -636,6 +830,7 @@ function transformSquareProducts(squareItems) {
       sizes,
       inventory,
       squareVariations: variations,
+      printLocations,
       // meta flags for UI
       ribbon: finalRibbon,
       isFeatured,
@@ -667,10 +862,38 @@ function renderShop() {
 
   productGrid.innerHTML = "";
 
+  const searchTerm = shopSearchInput
+    ? shopSearchInput.value.trim().toLowerCase()
+    : "";
+  const sizeVal = shopSizeFilterSelect ? shopSizeFilterSelect.value : "";
+  const colorVal = shopColorFilterSelect ? shopColorFilterSelect.value : "";
+
   // Apply filters and hide-online flag
   const filtered = products.filter((p) => {
+    // hideOnline flag
     if (p.flags && p.flags.hideOnline) return false;
-    return productMatchesFilters(p, activeTypeFilter, activeAudienceFilter);
+
+    // type + audience (same as kiosk)
+    if (!productMatchesFilters(p, activeTypeFilter, activeAudienceFilter)) {
+      return false;
+    }
+
+    // search by design name
+    if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) {
+      return false;
+    }
+
+    // size filter
+    if (sizeVal && !(p.sizes || []).includes(sizeVal)) {
+      return false;
+    }
+
+    // color filter
+    if (colorVal && !(p.colors || []).includes(colorVal)) {
+      return false;
+    }
+
+    return true;
   });
 
   // Sort: pinToTop first, then featured, then new, then name A–Z
@@ -711,9 +934,10 @@ function renderShop() {
       });
     }
 
-    const colorOptions = p.colors
-      .map((c) => `<option value="${c}">${c}</option>`)
-      .join("");
+    const colors =
+      p.colors && p.colors.length > 0
+        ? p.colors
+        : Object.keys(sizesByColor) || [];
 
     const getSizeOptionsHtml = (colorVal) => {
       const setForColor = sizesByColor[colorVal];
@@ -728,8 +952,27 @@ function renderShop() {
         .join("");
     };
 
-    const initialColor = p.colors[0] || Object.keys(sizesByColor)[0] || "";
+    const initialColor = colors[0] || Object.keys(sizesByColor)[0] || "";
     const initialSizeOptions = getSizeOptionsHtml(initialColor);
+
+    // ----- Build print locations from product.printLocations or variations -----
+    let productPrintLocations = Array.isArray(p.printLocations)
+      ? p.printLocations.slice()
+      : [];
+
+    if (
+      productPrintLocations.length === 0 &&
+      Array.isArray(p.squareVariations)
+    ) {
+      const locSet = new Set();
+      p.squareVariations.forEach((v) => {
+        const loc = v.printLocation || inferPrintLocationFromName(v.name);
+        if (loc) locSet.add(loc);
+      });
+      productPrintLocations = Array.from(locSet);
+    }
+
+    const hasPrintOptions = productPrintLocations.length > 0;
 
     const stock = getStockStatus(p);
     const typeLabel = p.type === "Other" ? "" : `${p.type} • `;
@@ -743,13 +986,25 @@ function renderShop() {
           .replace(/\s+/g, "-")}">${p.ribbon}</div>`
       : "";
 
+    const printLabelHtml = hasPrintOptions
+      ? `
+      <label>
+        Print:
+        <select class="product-print" ${isOutOfStock ? "disabled" : ""}>
+          ${productPrintLocations
+            .map((loc) => `<option value="${loc}">${loc}</option>`)
+            .join("")}
+        </select>
+      </label>
+    `
+      : "";
+
     div.innerHTML = `
       <div class="product-image-wrap">
         ${ribbonHtml}
         <img
           src="${
-            p.image ||
-            "https://via.placeholder.com/300x300?text=No+Image"
+            p.image || "https://via.placeholder.com/300x300?text=No+Image"
           }"
           alt="${p.name}"
           class="product-img"
@@ -768,21 +1023,19 @@ function renderShop() {
 
       <label>
         Color:
-        <select class="product-color" ${
-          isOutOfStock ? "disabled" : ""
-        }>
-          ${colorOptions}
+        <select class="product-color" ${isOutOfStock ? "disabled" : ""}>
+          ${colors.map((c) => `<option value="${c}">${c}</option>`).join("")}
         </select>
       </label>
 
       <label>
         Size:
-        <select class="product-size" ${
-          isOutOfStock ? "disabled" : ""
-        }>
+        <select class="product-size" ${isOutOfStock ? "disabled" : ""}>
           ${initialSizeOptions}
         </select>
       </label>
+
+      ${printLabelHtml}
 
       <div class="product-actions">
         <label>
@@ -795,9 +1048,7 @@ function renderShop() {
             ${isOutOfStock ? "disabled" : ""}
           >
         </label>
-        <button class="add-to-cart" ${
-          isOutOfStock ? "disabled" : ""
-        }>
+        <button class="add-to-cart" ${isOutOfStock ? "disabled" : ""}>
           Add to Cart
         </button>
       </div>
@@ -805,6 +1056,7 @@ function renderShop() {
 
     const colorSelect = div.querySelector(".product-color");
     const sizeSelect = div.querySelector(".product-size");
+    const printSelect = div.querySelector(".product-print");
     const qtyInput = div.querySelector(".product-qty");
     const addBtn = div.querySelector(".add-to-cart");
     const viewBtn = div.querySelector(".product-view-btn");
@@ -819,15 +1071,30 @@ function renderShop() {
     if (addBtn && !isOutOfStock) {
       addBtn.addEventListener("click", () => {
         const color =
-          (colorSelect && colorSelect.value) ||
-          p.colors[0] ||
-          "Default";
+          (colorSelect && colorSelect.value) || colors[0] || "Default";
         const size =
-          (sizeSelect && sizeSelect.value) ||
-          p.sizes[0] ||
-          "Standard";
+          (sizeSelect && sizeSelect.value) || p.sizes[0] || "Standard";
+
+        const printSide = hasPrintOptions
+          ? (printSelect && printSelect.value) ||
+            productPrintLocations[0] ||
+            null
+          : null;
+
         const qty = parseInt(qtyInput.value, 10) || 1;
-        addToCart(p, color, size, qty);
+
+        // Call the existing addToCart logic
+        addToCart(p, color, size, qty, printSide);
+
+        // Temporary "Added to cart" feedback on the button
+        const originalText = addBtn.textContent;
+        addBtn.textContent = "Added to cart";
+        addBtn.disabled = true;
+
+        setTimeout(() => {
+          addBtn.textContent = originalText;
+          addBtn.disabled = false;
+        }, 1000);
       });
     }
 
@@ -876,6 +1143,48 @@ function initShop() {
       });
     });
   }
+
+  // ---- Shop search / size / color filters (mirror kiosk) ----
+  if (shopSearchInput) {
+    shopSearchInput.addEventListener("input", renderShop);
+  }
+  if (shopSizeFilterSelect) {
+    shopSizeFilterSelect.addEventListener("change", renderShop);
+  }
+  if (shopColorFilterSelect) {
+    shopColorFilterSelect.addEventListener("change", renderShop);
+  }
+  if (shopClearFiltersBtn) {
+    shopClearFiltersBtn.addEventListener("click", () => {
+      if (shopSearchInput) shopSearchInput.value = "";
+      if (shopSizeFilterSelect) shopSizeFilterSelect.value = "";
+      if (shopColorFilterSelect) shopColorFilterSelect.value = "";
+
+      // Reset type chips
+      activeTypeFilter = "all";
+      if (categoryFilterContainer) {
+        const buttons = categoryFilterContainer.querySelectorAll("button");
+        buttons.forEach((b) => b.classList.remove("active"));
+        const allBtn = categoryFilterContainer.querySelector(
+          '[data-filter="all"], [data-type="all"]'
+        );
+        if (allBtn) allBtn.classList.add("active");
+      }
+
+      // Reset audience chips
+      activeAudienceFilter = "all";
+      if (audienceFilterContainer) {
+        const buttons = audienceFilterContainer.querySelectorAll("button");
+        buttons.forEach((b) => b.classList.remove("active"));
+        const allBtn = audienceFilterContainer.querySelector(
+          '[data-audience="all"]'
+        );
+        if (allBtn) allBtn.classList.add("active");
+      }
+
+      renderShop();
+    });
+  }
 }
 
 // ========== KIOSK PAGE RENDERING ==========
@@ -895,7 +1204,7 @@ const kioskSizeFilterSelect = document.getElementById("kiosk-size-filter");
 const kioskColorFilterSelect = document.getElementById("kiosk-color-filter");
 const kioskClearFiltersBtn = document.getElementById("kiosk-clear-filters");
 
-// Helpers for kiosk filters
+// Helpers for kiosk and shop filters
 function sortByMasterOrder(values, masterList) {
   const orderMap = new Map();
   masterList.forEach((val, idx) => orderMap.set(val, idx));
@@ -927,6 +1236,41 @@ function getAllAvailableColorsFromProducts() {
     });
   });
   return sortByMasterOrder(Array.from(set), MASTER_COLORS);
+}
+
+// ---- Populate shop dropdowns (mirror kiosk) ----
+function populateShopFilterOptions() {
+  if (shopSizeFilterSelect) {
+    shopSizeFilterSelect.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "All Sizes";
+    shopSizeFilterSelect.appendChild(first);
+
+    const sizes = getAllAvailableSizesFromProducts();
+    sizes.forEach((s) => {
+      const opt = document.createElement("option");
+      opt.value = s;
+      opt.textContent = s;
+      shopSizeFilterSelect.appendChild(opt);
+    });
+  }
+
+  if (shopColorFilterSelect) {
+    shopColorFilterSelect.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = "All Colors";
+    shopColorFilterSelect.appendChild(first);
+
+    const colors = getAllAvailableColorsFromProducts();
+    colors.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      shopColorFilterSelect.appendChild(opt);
+    });
+  }
 }
 
 function populateKioskFilterOptions() {
@@ -971,7 +1315,7 @@ function getKioskFilteredProducts() {
   const colorVal = kioskColorFilterSelect ? kioskColorFilterSelect.value : "";
 
   return products.filter((p) => {
-    // respect hideKiosk / hideOnline flags
+    // respect hideKiosk flag
     if (p.flags && p.flags.hideKiosk) return false;
 
     if (!productMatchesFilters(p, kioskTypeFilter, kioskAudienceFilter)) {
@@ -1019,7 +1363,13 @@ function renderKiosk() {
     if (Array.isArray(p.squareVariations) && p.squareVariations.length > 0) {
       p.squareVariations.forEach((v) => {
         const colorKey = v.color || "Default";
-        const sizeKey = v.size || "Standard";
+
+        // Only use real sizes; skip blank ones so we don't invent "Standard"
+        const sizeRaw = (v.size || "").trim();
+        if (!sizeRaw) {
+          return; // skip this variation if it doesn't have a size label
+        }
+        const sizeKey = sizeRaw;
 
         if (!sizesByColor[colorKey]) {
           sizesByColor[colorKey] = new Set();
@@ -1042,7 +1392,11 @@ function renderKiosk() {
       });
     }
 
-    const colors = p.colors || Object.keys(sizesByColor) || [];
+    const colors =
+      p.colors && p.colors.length > 0
+        ? p.colors
+        : Object.keys(sizesByColor) || [];
+
     const colorOptions = colors
       .map((c) => `<option value="${c}">${c}</option>`)
       .join("");
@@ -1050,9 +1404,7 @@ function renderKiosk() {
     const getSizeOptionsHtmlForColor = (colorVal) => {
       const setForColor = sizesByColor[colorVal];
       const sizesArr =
-        setForColor && setForColor.size > 0
-          ? Array.from(setForColor)
-          : p.sizes;
+        setForColor && setForColor.size > 0 ? Array.from(setForColor) : p.sizes;
       return (sizesArr || [])
         .map((s) => `<option value="${s}">${s}</option>`)
         .join("");
@@ -1083,13 +1435,42 @@ function renderKiosk() {
         ? getQtyText(initialColor, initialSize)
         : "Ask for availability";
 
+    // Build print locations for kiosk display
+    let kioskPrintLocations = Array.isArray(p.printLocations)
+      ? p.printLocations.slice()
+      : [];
+    if (
+      kioskPrintLocations.length === 0 &&
+      Array.isArray(p.squareVariations)
+    ) {
+      const locSet = new Set();
+      p.squareVariations.forEach((v) => {
+        const loc = v.printLocation || inferPrintLocationFromName(v.name);
+        if (loc) locSet.add(loc);
+      });
+      kioskPrintLocations = Array.from(locSet);
+    }
+    const hasPrintOptions = kioskPrintLocations.length > 0;
+
+    const printHtml = hasPrintOptions
+      ? `
+        <p>
+          <strong>Print:</strong>
+          <select class="kiosk-print">
+            ${kioskPrintLocations
+              .map((loc) => `<option value="${loc}">${loc}</option>`)
+              .join("")}
+          </select>
+        </p>
+      `
+      : "";
+
     div.innerHTML = `
       <div class="product-image-wrap">
         ${ribbonHtml}
         <img
           src="${
-            p.image ||
-            "https://via.placeholder.com/300x300?text=No+Image"
+            p.image || "https://via.placeholder.com/300x300?text=No+Image"
           }"
           alt="${p.name}"
           class="product-img"
@@ -1117,6 +1498,7 @@ function renderKiosk() {
             ${initialSizeOptions}
           </select>
         </p>
+        ${printHtml}
         <p class="kiosk-qty">
           <strong>Qty Available:</strong> ${initialQtyText}
         </p>
@@ -1224,6 +1606,17 @@ function initKioskFilters() {
         if (allBtn) allBtn.classList.add("active");
       }
 
+      kioskAudienceFilter = "all";
+      if (kioskAudienceFilterContainer) {
+        const buttons =
+          kioskAudienceFilterContainer.querySelectorAll("button");
+        buttons.forEach((b) => b.classList.remove("active"));
+        const allBtn = kioskAudienceFilterContainer.querySelector(
+          '[data-audience="all"]'
+        );
+        if (allBtn) allBtn.classList.add("active");
+      }
+
       renderKiosk();
     });
   }
@@ -1301,6 +1694,7 @@ async function loadProducts() {
     console.log("Transformed products:", products);
 
     if (document.getElementById("product-grid")) {
+      populateShopFilterOptions();
       initShop();
     }
     if (document.getElementById("kiosk-grid")) {
@@ -1314,12 +1708,14 @@ async function loadProducts() {
     products = [];
 
     if (document.getElementById("product-grid")) {
+      populateShopFilterOptions();
       initShop();
     }
     if (document.getElementById("kiosk-grid")) {
       populateKioskFilterOptions();
       initKiosk();
     }
+
     updateCartDisplay();
   }
 }
@@ -1340,114 +1736,81 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCartDisplay();
   }
 
+  // ----- Attach checkout handler -----
   const checkoutBtn = document.getElementById("checkout-btn");
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", handleCheckoutClick);
   }
+
+  // ----- Recalculate tax when the shipping state changes -----
+  const checkoutStateInput = document.getElementById("checkout-state");
+  if (checkoutStateInput) {
+    checkoutStateInput.addEventListener("input", updateCartDisplay);
+    checkoutStateInput.addEventListener("change", updateCartDisplay);
+    checkoutStateInput.addEventListener("blur", updateCartDisplay);
+  }
+
+  // ===== MOVE-TO-TOP BUTTON (GLOBAL) =====
+  const moveToTopBtn = document.getElementById("moveToTopBtn");
+  if (moveToTopBtn) {
+    const toggleMoveToTop = () => {
+      if (window.scrollY > 200) {
+        moveToTopBtn.classList.add("visible");
+      } else {
+        moveToTopBtn.classList.remove("visible");
+      }
+    };
+
+    window.addEventListener("scroll", toggleMoveToTop);
+    // run once
+    toggleMoveToTop();
+
+    moveToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
 });
 
+
 // ===============================
-//  CART PAGE: SHIPPING + BANNER
+//  CART PAGE: SHIPPING/FEE/TAX + BANNER
 // ===============================
 
 function spcRecalcCartShipping() {
-  // Only run on the cart page
   const cartPage = document.querySelector(".cart-page");
   if (!cartPage) return;
 
-  const subtotalEl = document.getElementById("cart-total");
-  const shippingEl = document.getElementById("cart-shipping");
-  const grandTotalEl = document.getElementById("cart-grand-total");
-  const bannerEl = document.getElementById("free-shipping-banner");
-
-  if (!subtotalEl || !shippingEl || !grandTotalEl || !bannerEl) return;
-
-  // Read current subtotal (dollars) from DOM
-  const raw = subtotalEl.textContent || subtotalEl.innerText || "0";
-  const subtotal = Number(raw.replace(/[^0-9.]/g, "")) || 0;
-
-  let shipping = 0;
-  let bannerText = "";
-  let bannerClass = "free-shipping-banner";
-
-  const flat = Number(SHIPPING_FLAT_RATE || 0);
-  const thresh = Number(FREE_SHIPPING_THRESHOLD || 0);
-
-  if (subtotal <= 0) {
-    // Empty cart
-    shipping = 0;
-    if (thresh > 0) {
-      bannerText = `Free shipping on orders over $${thresh.toFixed(2)}.`;
-    } else {
-      bannerText = flat > 0
-        ? `Flat-rate shipping $${flat.toFixed(2)} per order.`
-        : "Shipping will be calculated at checkout.";
-    }
-  } else if (thresh > 0 && subtotal >= thresh) {
-    // Qualifies for free shipping
-    shipping = 0;
-    bannerText = `🎉 Your order qualifies for FREE shipping!`;
-    bannerClass += " free-shipping-achieved";
-  } else {
-    // Below free threshold or no threshold set
-    shipping = flat > 0 ? flat : 0;
-
-    if (thresh > 0) {
-      const diff = Math.max(thresh - subtotal, 0);
-      bannerText =
-        `Free shipping on orders over $${thresh.toFixed(2)}. ` +
-        `Add $${diff.toFixed(2)} more to get FREE shipping.`;
-    } else if (flat > 0) {
-      bannerText = `Flat-rate shipping $${flat.toFixed(2)} per order.`;
-    } else {
-      bannerText = "Shipping will be calculated at checkout.";
-    }
-  }
-
-  // Update DOM
-  shippingEl.textContent = shipping.toFixed(2);
-  grandTotalEl.textContent = (subtotal + shipping).toFixed(2);
-
-  bannerEl.textContent = bannerText;
-  bannerEl.className = bannerClass;
+  // Single source of truth for all totals (shipping + fee + tax + banner)
+  updateCartDisplay();
 }
 
 async function spcInitCartShipping() {
   const cartPage = document.querySelector(".cart-page");
   if (!cartPage) return; // only on cart.html
 
-  // 1) Fetch settings from /admin/config
   try {
     const res = await fetch(`${API_BASE}/admin/config`);
     if (res.ok) {
       const data = await res.json();
-      if (typeof data.shippingFlatRate === "number") {
-        SHIPPING_FLAT_RATE = data.shippingFlatRate;
+
+      // These often come back as strings, so coerce safely
+      if (data.shippingFlatRate != null && !isNaN(data.shippingFlatRate)) {
+        SHIPPING_FLAT_RATE = parseFloat(data.shippingFlatRate);
       }
-      if (typeof data.freeShippingThreshold === "number") {
-        FREE_SHIPPING_THRESHOLD = data.freeShippingThreshold;
+      if (
+        data.freeShippingThreshold != null &&
+        !isNaN(data.freeShippingThreshold)
+      ) {
+        FREE_SHIPPING_THRESHOLD = parseFloat(data.freeShippingThreshold);
       }
     }
   } catch (err) {
     console.error("Failed to load shipping settings for cart:", err);
-    // fall back to defaults
+    // fall back to defaults (6.95 / 75) if config fails
   }
 
-  // 2) Initial calc once your existing cart code has filled in subtotal
+  // Initial calc now that shipping settings are loaded
   spcRecalcCartShipping();
-
-  // 3) Watch for subtotal changes (e.g. qty changes, remove item, etc.)
-  const subtotalEl = document.getElementById("cart-total");
-  if (subtotalEl) {
-    const observer = new MutationObserver(() => {
-      spcRecalcCartShipping();
-    });
-    observer.observe(subtotalEl, {
-      childList: true,
-      characterData: true,
-      subtree: true,
-    });
-  }
 }
 
 // Register AFTER your main DOMContentLoaded in this file

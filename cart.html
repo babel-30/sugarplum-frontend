@@ -39,30 +39,75 @@
         <!-- RIGHT COLUMN: summary + customer info + actions -->
         <aside class="cart-summary-panel">
           <div id="cart-summary">
+            <!-- Free shipping banner (kept the same; JS fills it) -->
             <div id="free-shipping-banner" class="free-shipping-banner">
               <!-- JS will fill this -->
             </div>
 
-            <!-- Totals section -->
-            <div class="cart-summary-row">
-              <span>Total items:</span>
-              <span id="cart-count">0</span>
-            </div>
+            <!-- ORDER SUMMARY BREAKDOWN -->
+            <section class="cart-summary-card">
+              <div class="cart-summary-header">
+                <h2>Order Summary</h2>
+              </div>
 
-            <div class="cart-summary-row">
-              <span>Subtotal:</span>
-              <span>$<span id="cart-total">0.00</span></span>
-            </div>
+              <div class="cart-summary-body">
+                <div class="cart-summary-row">
+                  <span class="cart-summary-label">Total items:</span>
+                  <span
+                    class="cart-summary-value"
+                    id="summary-total-items"
+                    >0</span
+                  >
+                </div>
 
-            <div class="cart-summary-row">
-              <span>Shipping:</span>
-              <span>$<span id="cart-shipping">0.00</span></span>
-            </div>
+                <div class="cart-summary-row">
+                  <span class="cart-summary-label">Subtotal:</span>
+                  <span
+                    class="cart-summary-value"
+                    id="summary-subtotal"
+                    >$0.00</span
+                  >
+                </div>
 
-            <div class="cart-summary-row cart-summary-grand">
-              <span>Order Total:</span>
-              <span>$<span id="cart-grand-total">0.00</span></span>
-            </div>
+                <div class="cart-summary-row">
+                  <span class="cart-summary-label">Shipping:</span>
+                  <span
+                    class="cart-summary-value"
+                    id="summary-shipping"
+                    >$0.00</span
+                  >
+                </div>
+
+                <div class="cart-summary-row">
+                  <span class="cart-summary-label">Convenience Fee (3%):</span>
+                  <span
+                    class="cart-summary-value"
+                    id="summary-convenience-fee"
+                    >$0.00</span
+                  >
+                </div>
+
+                <div class="cart-summary-row">
+                  <span class="cart-summary-label">Estimated Sales Tax:</span>
+                  <span
+                    class="cart-summary-value"
+                    id="summary-sales-tax"
+                    >$0.00</span
+                  >
+                </div>
+
+                <hr class="cart-summary-divider" />
+
+                <div class="cart-summary-row cart-summary-grand">
+                  <span class="cart-summary-total-label">Order Total:</span>
+                  <span
+                    class="cart-summary-total-value"
+                    id="summary-order-total"
+                    >$0.00</span
+                  >
+                </div>
+              </div>
+            </section>
 
             <!-- Customer details -->
             <div class="cart-customer-section">

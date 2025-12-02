@@ -51,19 +51,19 @@
 
           <select id="kiosk-size-filter">
             <option value="">All Sizes</option>
-            <!-- Options filled dynamically -->
+            <!-- Filled dynamically -->
           </select>
 
           <select id="kiosk-color-filter">
             <option value="">All Colors</option>
-            <!-- Options filled dynamically -->
+            <!-- Filled dynamically -->
           </select>
 
           <button id="kiosk-clear-filters">Clear Filters</button>
         </div>
       </div>
 
-      <!-- Audience filters row -->
+      <!-- Audience filters -->
       <section id="kiosk-audience-filters">
         <button data-audience="all" class="active">All</button>
         <button data-audience="Men/Unisex">Men / Unisex</button>
@@ -78,14 +78,8 @@
     <!-- Shared image modal -->
     <div id="image-modal" class="image-modal hidden">
       <div class="image-modal-content">
-        <button class="image-modal-close" aria-label="Close">
-          &times;
-        </button>
-        <img
-          id="image-modal-img"
-          src=""
-          alt="Enlarged product image"
-        />
+        <button class="image-modal-close" aria-label="Close">&times;</button>
+        <img id="image-modal-img" src="" alt="Enlarged product image" />
         <p id="image-modal-caption"></p>
       </div>
     </div>
@@ -102,6 +96,11 @@
         <p>Tap anywhere to begin</p>
       </div>
     </div>
+
+    <!-- MOVE-TO-TOP BUTTON (script.js handles logic) -->
+    <button id="moveToTopBtn" class="move-to-top-btn" aria-label="Scroll back to top">
+      ↑ Top
+    </button>
 
     <!-- ORDER MATTERS (config.js MUST load first) -->
     <script src="config.js"></script>

@@ -1,4 +1,4 @@
-/* ===================== CUSTOM FONTS ===================== */ 
+/* ===================== CUSTOM FONTS ===================== */
 
 @font-face {
   font-family: "BrittanySignature";
@@ -244,17 +244,14 @@ main h2 {
 .product-ribbon {
   position: absolute;
   top: 55px;
-  left: -50px; /* shift whole strip horizontally */
+  left: -50px;
   z-index: 5;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   padding: 0.45rem 2.6rem 0.55rem 3.1rem;
   transform: rotate(-35deg);
   transform-origin: left top;
-
   text-align: center;
   color: #ffffff;
   font-family: var(--font-heading);
@@ -263,13 +260,10 @@ main h2 {
   white-space: nowrap;
   border-radius: 999px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
-
-  /* 🔥 Default: bright pink solid ribbon (used by CUSTOM) */
   background: linear-gradient(135deg, #ff4fa3, #ff1493);
   border: 2px solid #ff4fa3;
 }
 
-/* These classes are added from script.js based on ribbon flags */
 .product-ribbon-new {
   background: linear-gradient(135deg, #b42ea0, #7a2282);
   border: 2px solid rgba(255, 255, 255, 0.75);
@@ -280,7 +274,6 @@ main h2 {
   border: 2px solid rgba(255, 255, 255, 0.75);
 }
 
-/* Custom keeps the same bright pink — this is now just explicit */
 .product-ribbon-custom {
   background: linear-gradient(135deg, #ff4fa3, #ff1493);
   border: 2px solid #ff4fa3;
@@ -295,7 +288,7 @@ main h2 {
   display: block;
 }
 
-/* Overlay "View Larger" button on image (kiosk + any .view-image usage) */
+/* Overlay "View Larger" button (shop + kiosk) */
 .product-image-wrap .view-image,
 .kiosk-enlarge-btn {
   position: absolute;
@@ -313,13 +306,13 @@ main h2 {
   font-weight: 600;
 }
 
-/* Shop page "View Larger" button under the photo (if you use it) */
+/* Optional "View Larger" button under product image */
 .product-view-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   margin: 0.5rem 1.25rem 0;
-  margin-left: auto; /* right side of the card */
+  margin-left: auto;
   padding: 0.4rem 1.2rem;
   border-radius: 999px;
   border: none;
@@ -332,6 +325,7 @@ main h2 {
 }
 
 /* Product text */
+
 .product-name {
   min-height: 2.4em;
   margin: 6px 0 2px;
@@ -350,6 +344,7 @@ main h2 {
 }
 
 /* Stock status labels */
+
 .stock-status {
   min-height: 1.2em;
   margin-bottom: 8px;
@@ -371,6 +366,7 @@ main h2 {
 }
 
 /* Size + selects */
+
 .product label {
   display: block;
   margin-top: 8px;
@@ -389,6 +385,7 @@ main h2 {
 }
 
 /* Actions area at bottom of card */
+
 .product-actions {
   margin-top: auto;
   display: flex;
@@ -398,6 +395,7 @@ main h2 {
 }
 
 /* Qty input */
+
 .product-qty {
   width: 60px;
   padding: 4px;
@@ -407,6 +405,7 @@ main h2 {
 }
 
 /* Add to cart button (shop) */
+
 .add-to-cart {
   background: var(--brand-main);
   color: white;
@@ -425,7 +424,8 @@ main h2 {
   cursor: not-allowed;
 }
 
-/* Kiosk "show to cashier" button placeholder */
+/* Kiosk "show to cashier" */
+
 .kiosk-product .kiosk-show,
 .kiosk-item .kiosk-show {
   background: var(--brand-main);
@@ -511,6 +511,7 @@ main h2 {
 }
 
 /* Active states shared */
+
 #category-filters button.active,
 #kiosk-filters button.active,
 #audience-filters button.active,
@@ -579,7 +580,6 @@ main h2 {
   margin: 4px 0;
 }
 
-/* default cart-line styles (overridden on full cart page later) */
 #cart-details .cart-line {
   display: flex;
   flex-direction: column;
@@ -750,6 +750,7 @@ body.kiosk {
 }
 
 /* Kiosk grid */
+
 #kiosk-grid {
   max-width: 1100px;
   margin: 0 auto 1.5rem;
@@ -759,6 +760,7 @@ body.kiosk {
 }
 
 /* Kiosk card overrides */
+
 .kiosk-item {
   background: #f9f4ff;
   color: #3a2347;
@@ -1024,7 +1026,6 @@ select,
 
 /* =========================================================
    CART PAGE – NEW LEFT/RIGHT LAYOUT + SHIPPING + CUSTOMER INFO
-   (applies when .cart-page is present)
    ========================================================= */
 
 .cart-page {
@@ -1033,7 +1034,6 @@ select,
   padding: 0 1rem;
 }
 
-/* Two-column layout: items left, summary right */
 .cart-layout {
   display: grid;
   grid-template-columns: minmax(0, 2.5fr) minmax(0, 1.2fr);
@@ -1042,7 +1042,6 @@ select,
   align-items: flex-start;
 }
 
-/* Left side: full cart items list */
 .cart-items {
   background: #ffffff;
   border-radius: 24px;
@@ -1050,7 +1049,6 @@ select,
   padding: 1.5rem 1.75rem;
 }
 
-/* Override cart-lines inside cart-page */
 .cart-page #cart-details .cart-line {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -1064,7 +1062,6 @@ select,
   border-bottom: none;
 }
 
-/* Image on the left */
 .cart-page .cart-line-image img {
   width: 90px;
   height: 90px;
@@ -1072,7 +1069,6 @@ select,
   object-fit: cover;
 }
 
-/* Name + meta stacked & centered */
 .cart-page .cart-line-main {
   display: flex;
   flex-direction: column;
@@ -1080,7 +1076,6 @@ select,
   text-align: center;
 }
 
-/* Shirt name under the picture – Brittany font */
 .cart-page .cart-name-below {
   font-family: "BrittanySignature", cursive;
   font-size: 1.35rem;
@@ -1090,7 +1085,6 @@ select,
   color: #2e1b47;
 }
 
-/* Descriptors (type • color • size) */
 .cart-page .cart-meta-purple {
   font-family: "Handwash", sans-serif;
   font-size: 1rem;
@@ -1101,7 +1095,6 @@ select,
   margin-top: -2px;
 }
 
-/* Qty controls + price + X on the right */
 .cart-page .cart-line-controls {
   display: flex;
   align-items: center;
@@ -1129,7 +1122,6 @@ select,
   color: #4a3b7a;
 }
 
-/* Right side: summary panel */
 .cart-summary-panel {
   display: flex;
   flex-direction: column;
@@ -1148,7 +1140,6 @@ select,
   margin-left: auto;
 }
 
-/* Free shipping banner row */
 .free-shipping-banner {
   background: #fbe7f7;
   border-radius: 999px;
@@ -1160,7 +1151,6 @@ select,
   margin-bottom: 0.75rem;
 }
 
-/* summary rows */
 .cart-page #cart-summary .cart-summary-row {
   display: flex;
   justify-content: space-between;
@@ -1168,7 +1158,6 @@ select,
   font-size: 1.05rem;
 }
 
-/* grand total row */
 .cart-page #cart-summary .cart-summary-grand {
   margin-top: 0.5rem;
   padding-top: 0.4rem;
@@ -1177,7 +1166,6 @@ select,
   font-weight: 700;
 }
 
-/* Customer info + shipping sections */
 .cart-customer-section,
 .cart-shipping-section {
   margin-top: 1rem;
@@ -1206,7 +1194,6 @@ select,
   margin-left: 0.15rem;
 }
 
-/* Input styles */
 .cart-field input {
   border-radius: 999px;
   border: 1px solid #d8c7f0;
@@ -1221,7 +1208,6 @@ select,
   box-shadow: 0 0 0 2px rgba(180, 46, 160, 0.2);
 }
 
-/* State/ZIP row */
 .cart-field-row {
   display: flex;
   gap: 0.6rem;
@@ -1231,14 +1217,12 @@ select,
   flex: 1;
 }
 
-/* Cart actions row (Continue Shopping + Checkout) */
 .cart-actions {
   margin-top: 0.9rem;
   display: flex;
   gap: 0.75rem;
 }
 
-/* Both buttons: pill style, same height */
 .cart-actions a.continue-shopping,
 .cart-actions #checkout-btn {
   flex: 1;
@@ -1252,7 +1236,6 @@ select,
   text-decoration: none;
 }
 
-/* Left: Continue Shopping – white pill with purple border */
 .cart-actions a.continue-shopping {
   background: #ffffff;
   color: #3a2852;
@@ -1263,7 +1246,6 @@ select,
   background: #fbe7f7;
 }
 
-/* Right: Checkout – solid pink pill */
 .cart-actions #checkout-btn {
   background: var(--brand-main);
   color: #ffffff;
@@ -1278,7 +1260,6 @@ select,
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.3);
 }
 
-/* Mobile: stack columns on small screens */
 @media (max-width: 800px) {
   .cart-layout {
     grid-template-columns: 1fr;
@@ -1359,16 +1340,14 @@ select,
   margin-top: 1.5rem;
 }
 
-/* Admin page font override */
 body.admin {
   font-family: var(--font-body);
 }
 
-/* Pill button styling to match site theme */
 .btn-primary,
 .btn-secondary {
   padding: 0.6rem 1.4rem;
-  border-radius: 50px;   /* pill shape */
+  border-radius: 50px;
   font-size: 1rem;
   font-family: var(--font-body);
   border: none;
@@ -1376,7 +1355,6 @@ body.admin {
   transition: 0.2s ease;
 }
 
-/* Primary button */
 .btn-primary {
   background: var(--brand-main);
   color: #ffffff;
@@ -1387,7 +1365,6 @@ body.admin {
   background: #e74dc1;
 }
 
-/* Secondary button */
 .btn-secondary {
   background: var(--brand-main);
   color: #ffffff;
@@ -1420,7 +1397,6 @@ body.admin {
   text-align: left;
 }
 
-/* Flag pill checkboxes on admin inventory table */
 .flag-pill {
   display: inline-flex;
   align-items: center;
@@ -1435,8 +1411,6 @@ body.admin {
 .flag-pill input[type="checkbox"] {
   accent-color: var(--brand-main);
 }
-
-/* ========== Inventory Flags section extras ========== */
 
 #flags-section .flags-header-row {
   display: flex;
@@ -1470,7 +1444,6 @@ body.admin {
   padding-bottom: 0.75rem;
 }
 
-/* ✅ CHANGED HERE: apply sticky/footer styling to .flags-save-bar too */
 .flags-save-bar,
 .flags-sticky-footer {
   position: sticky;
@@ -1491,11 +1464,121 @@ body.admin {
   min-width: 190px;
 }
 
-/* Collapsed state hides table & footer */
 #flags-section.flags-collapsed .products-table-wrapper,
 #flags-section.flags-collapsed .flags-save-bar,
 #flags-section.flags-collapsed .flags-sticky-footer {
   display: none;
 }
 
-/* ===================== END ADMIN STYLES ===================== */
+/* ===================== MOVE-TO-TOP BUTTON (GLOBAL) ===================== */
+
+.move-to-top-btn {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 999px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: var(--brand-main);
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+
+  /* hidden by default; JS adds .visible */
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 999;
+}
+
+.move-to-top-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ===================== UNIFIED FILTER ROW + SEARCH STYLES (SHOP + KIOSK) ===================== */
+
+/* Search inputs – both pages (SHOP + KIOSK) */
+#shop-search,
+#kiosk-search {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #ffffff;
+  background: #ffffff;
+  color: #6a4d7a;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+#shop-search::placeholder,
+#kiosk-search::placeholder {
+  color: #b48cc7;
+}
+
+/* Clear Filters buttons – identical on shop + kiosk */
+#shop-clear-filters,
+#kiosk-clear-filters {
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  background: #ffffff;
+  color: #b42ea0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+
+#shop-clear-filters:hover,
+#kiosk-clear-filters:hover {
+  background: #fbe7f7;
+}
+/* ===== Floating Social Buttons ===== */
+.floating-social {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;          /* move to left side */
+  right: auto;         /* override any right positioning */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+}
+
+.social-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;          /* keeps the icon nicely round */
+  background: transparent;   /* icon image provides the gradient */
+  padding: 0;
+  border: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.social-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+

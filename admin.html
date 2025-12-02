@@ -47,11 +47,7 @@
           ></textarea>
 
           <label class="admin-checkbox">
-            <input
-              type="checkbox"
-              id="bannerVisible"
-              name="bannerVisible"
-            />
+            <input type="checkbox" id="bannerVisible" name="bannerVisible" />
             <span>Show banner on site</span>
           </label>
 
@@ -145,7 +141,7 @@
       <!-- Inventory / Product Flags -->
       <section class="card admin-section" id="flags-section">
         <div class="flags-header-row">
-          <h2>Inventory & Product Flags</h2>
+          <h2>Inventory &amp; Product Flags</h2>
           <button type="button" id="flags-toggle-btn" class="flags-toggle-btn">
             Collapse
           </button>
@@ -190,12 +186,35 @@
         </div>
       </section>
 
+      <!-- Catalog & Inventory Sync -->
+      <section class="card admin-section" id="sync-section">
+        <h2>Catalog &amp; Inventory Sync</h2>
+        <p class="admin-help-text">
+          If products look out of date after adding or editing items in Square,
+          you can manually trigger a refresh here. The site also refreshes
+          automatically in the background every few minutes.
+        </p>
+
+        <div class="admin-button-row">
+          <button id="btn-sync-catalog" type="button" class="btn-primary">
+            Refresh Catalog + Inventory
+          </button>
+          <button id="btn-sync-inventory" type="button" class="btn-secondary">
+            Refresh Inventory Only
+          </button>
+        </div>
+
+        <p id="sync-status" class="admin-status"></p>
+      </section>
+
       <!-- Orders Card -->
       <section class="card admin-section">
         <h2>Recent Orders</h2>
         <p class="admin-help-text">
-          Quick view of recent orders created from your website checkout.
-          You can update status and add tracking here.
+          Quick view of recent orders created from your website checkout. You
+          can update status, add tracking, and mark an order as
+          <strong>ARCHIVED</strong> once it’s completed. Archived orders are
+          removed from this list and moved into the downloadable archive.
         </p>
 
         <div class="admin-orders-controls">
@@ -213,30 +232,31 @@
                 <th>Total</th>
                 <th>Status</th>
                 <th>Tracking #</th>
+                <th>Packing List</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="orders-tbody">
               <tr>
-                <td colspan="6">Loading orders…</td>
+                <td colspan="7">Loading orders…</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- Monthly Archive Section -->
+      <!-- Order Archive Download Section -->
       <section class="card admin-section">
-        <h2>Monthly Receipts Archive</h2>
+        <h2>Order Archive Download</h2>
         <p class="admin-help-text">
-          Create a ZIP of this month’s exported receipts/invoices from the
-          server <br />
-          (from the <code>exports</code> folder), email it to you, and clear the
-          originals.
+          When you mark orders as <strong>ARCHIVED</strong>, they are moved into
+          an archive folder on the server. Use this button to download a ZIP
+          file containing all archived orders and permanently clear them from
+          the online server to save space.
         </p>
 
         <button id="archive-current-month" class="btn-secondary">
-          Archive Current Month
+          Download Orders Archive
         </button>
 
         <p id="archive-status" class="admin-status"></p>
