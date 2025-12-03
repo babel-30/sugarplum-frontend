@@ -1,113 +1,25 @@
-<!DOCTYPE html> 
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Thank You – Sugar Plum Creations</title>
-  <link rel="stylesheet" href="styles.css" />
+<script>
+  // Always detect production properly
+  const IS_PROD = window.location.hostname.includes("shopsugarplum.co");
 
-  <style>
-    .thankyou-wrapper {
-      padding: 4rem 1rem;
-      text-align: center;
-      max-width: 700px;
-      margin: 0 auto;
-      color: #ffffff;
-    }
+  // Backend base URL (NOT the frontend)
+  const API_BASE = IS_PROD
+    ? "https://sugarplum-backend.onrender.com"
+    : "http://127.0.0.1:3000";
 
-    .thankyou-card {
-      background: #ffffff;
-      color: #6a4d7a;
-      padding: 2rem;
-      border-radius: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
-    }
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("Thank-you: triggering post-checkout inventory refresh...");
 
-    .thankyou-title {
-      font-family: var(--font-heading);
-      font-size: 2.8rem;
-      margin-bottom: 1rem;
-      color: #b42ea0;
-    }
-
-    .thankyou-msg {
-      font-size: 1.2rem;
-      line-height: 1.6;
-      margin-bottom: 2rem;
-      font-family: var(--font-body);
-    }
-
-    .thankyou-btn {
-      display: inline-block;
-      background: #b42ea0;
-      color: #fff;
-      padding: 0.8rem 1.6rem;
-      border-radius: 999px;
-      font-size: 1.1rem;
-      text-decoration: none;
-      font-weight: bold;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
-    }
-
-    .thankyou-btn:hover {
-      background: #7c1d72;
-    }
-  </style>
-</head>
-
-<body class="thankyou">
-
-  <header class="header">
-    <div class="header-brand">
-      <img src="spc-logo-round.png" alt="Sugar Plum Creations" class="header-logo-img" />
-      <a href="index.html" class="brand-link">
-        <span class="brand-logo-text">Sugar Plum Creations</span>
-      </a>
-    </div>
-  </header>
-
-  <main>
-    <div class="thankyou-wrapper">
-      <div class="thankyou-card">
-        <h1 class="thankyou-title">Thank You!</h1>
-        <p class="thankyou-msg">
-          Your order has been successfully placed.<br/>
-          We’re already getting it ready for you!
-        </p>
-
-        <a href="index.html" class="thankyou-btn">Return to Shop</a>
-      </div>
-    </div>
-  </main>
-
-
-  <!-- ====================================================== -->
-  <!-- AUTO REFRESH INVENTORY AFTER SQUARE REDIRECT -->
-  <!-- ====================================================== -->
-  <script>
-    // Detect production
-    const IS_PROD = window.location.hostname.includes("shopsugarplum.co");
-
-    // Same API base the rest of the site uses
-    const API_BASE = IS_PROD
-      ? "https://shopsugarplum.co"
-      : "http://localhost:3000";
-
-    document.addEventListener("DOMContentLoaded", () => {
-      console.log("Thank-you: triggering post-checkout inventory refresh...");
-
-      fetch(`${API_BASE}/admin/refresh-inventory`, {
-        method: "POST",
+    fetch(`${API_BASE}/admin/refresh-inventory`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Inventory refreshed after checkout:", data);
       })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Inventory refreshed after checkout:", data);
-        })
-        .catch((err) => {
-          console.error("Auto inventory refresh failed:", err);
-        });
-    });
-  </script>
-
-</body>
-</html>
+      .catch((err) => {
+        console.error("Auto inventory refresh failed:", err);
+      });
+  });
+</script>
