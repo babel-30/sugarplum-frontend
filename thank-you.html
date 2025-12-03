@@ -1,25 +1,121 @@
-<script>
-  // Always detect production properly
-  const IS_PROD = window.location.hostname.includes("shopsugarplum.co");
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thank You – Sugar Plum Creations</title>
 
-  // Backend base URL (NOT the frontend)
-  const API_BASE = IS_PROD
-    ? "https://sugarplum-backend.onrender.com"
-    : "http://127.0.0.1:3000";
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
 
-  document.addEventListener("DOMContentLoaded", () => {
-    console.log("Thank-you: triggering post-checkout inventory refresh...");
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f8eefc;
+        font-family: "Poppins", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
 
-    fetch(`${API_BASE}/admin/refresh-inventory`, {
-      method: "POST",
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Inventory refreshed after checkout:", data);
-      })
-      .catch((err) => {
-        console.error("Auto inventory refresh failed:", err);
+      .card {
+        background: white;
+        padding: 40px 30px;
+        border-radius: 20px;
+        box-shadow: rgba(0, 0, 0, 0.15) 0 8px 24px;
+        text-align: center;
+        width: 90%;
+        max-width: 500px;
+      }
+
+      .title {
+        font-family: "Great Vibes", cursive;
+        font-size: 48px;
+        color: #7a2b8f;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #4a1857;
+      }
+
+      .message {
+        font-size: 16px;
+        color: #5e3c68;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+
+      .button {
+        display: inline-block;
+        background: #b85acb;
+        color: white;
+        font-weight: 600;
+        padding: 12px 26px;
+        border-radius: 30px;
+        text-decoration: none;
+        font-size: 16px;
+        transition: 0.25s;
+      }
+
+      .button:hover {
+        background: #9c4aad;
+      }
+
+      .logo {
+        width: 120px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="card">
+      <img src="spc-logo-round.png" class="logo" alt="Sugar Plum Creations" />
+
+      <div class="title">Thank You!</div>
+      <div class="subtitle">Your order has been received</div>
+
+      <div class="message">
+        You will receive an email confirmation shortly.<br />
+        If you have any questions, feel free to reach out.<br /><br />
+        We appreciate your support for our small business!
+      </div>
+
+      <a href="index.html" class="button">Continue Shopping</a>
+    </div>
+
+    <!-- Inventory Refresh Script -->
+    <script>
+      const IS_PROD = window.location.hostname.includes("shopsugarplum.co");
+
+      const API_BASE = IS_PROD
+        ? "https://sugarplum-backend.onrender.com"
+        : "http://127.0.0.1:3000";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("Thank-you: triggering post-checkout inventory refresh...");
+
+        fetch(`${API_BASE}/admin/refresh-inventory`, {
+          method: "POST",
+          credentials: "include",
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log("Inventory refreshed after checkout:", data);
+          })
+          .catch((err) => {
+            console.error("Auto inventory refresh failed:", err);
+          });
       });
-  });
-</script>
+    </script>
+  </body>
+</html>
