@@ -1141,17 +1141,21 @@ function renderShop() {
     const variationsForUi =
       inStockVariations.length > 0 ? inStockVariations : allVariations;
 
-    // Build color → size map from *in-stock* variations
+    // Build color → size map using only variations that still have stock.
     const sizesByColor = {};
+    const colorsInStock = new Set();
+
     if (variationsForUi.length > 0) {
       variationsForUi.forEach((v) => {
         const colorKey = v.color || "Default";
+        const sizeLabel = (v.size || "").trim();
+        if (!sizeLabel) return; // ignore blanks
+
         if (!sizesByColor[colorKey]) {
           sizesByColor[colorKey] = new Set();
         }
-        if (v.size) {
-          sizesByColor[colorKey].add(v.size);
-        }
+        sizesByColor[colorKey].add(sizeLabel);
+        colorsInStock.add(colorKey);
       });
     }
 
@@ -1159,14 +1163,17 @@ function renderShop() {
     if (Object.keys(sizesByColor).length === 0) {
       (p.colors || []).forEach((c) => {
         sizesByColor[c] = new Set(p.sizes || []);
+        colorsInStock.add(c);
       });
     }
 
     // Only show colors that actually have at least one size option
-    let colors = Object.keys(sizesByColor);
-    if (!colors.length && p.colors && p.colors.length > 0) {
-      colors = p.colors;
-    }
+    const colors =
+      colorsInStock.size > 0
+        ? Array.from(colorsInStock)
+        : (p.colors && p.colors.length > 0
+            ? p.colors
+            : Object.keys(sizesByColor) || []);
 
     const getSizeOptionsHtml = (colorVal) => {
       const setForColor = sizesByColor[colorVal];
