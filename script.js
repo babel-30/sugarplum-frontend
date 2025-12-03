@@ -1126,10 +1126,25 @@ function renderShop() {
     const div = document.createElement("div");
     div.className = "product";
 
-    // Build color/size maps from variations
+    // ===== NEW: build an "in-stock" view of variations =====
+    const allVariations = Array.isArray(p.squareVariations)
+      ? p.squareVariations
+      : [];
+
+    // Only keep variations where qty > 0, if we know qty
+    const inStockVariations = allVariations.filter((v) => {
+      const q = extractQtyFromVariation(v);
+      return typeof q === "number" && q > 0;
+    });
+
+    // If we couldn't detect any counts, fall back to all variations
+    const variationsForUi =
+      inStockVariations.length > 0 ? inStockVariations : allVariations;
+
+    // Build color → size map from *in-stock* variations
     const sizesByColor = {};
-    if (Array.isArray(p.squareVariations) && p.squareVariations.length > 0) {
-      p.squareVariations.forEach((v) => {
+    if (variationsForUi.length > 0) {
+      variationsForUi.forEach((v) => {
         const colorKey = v.color || "Default";
         if (!sizesByColor[colorKey]) {
           sizesByColor[colorKey] = new Set();
@@ -1140,16 +1155,18 @@ function renderShop() {
       });
     }
 
+    // Fallback: no variation info at all → use product-level colors/sizes
     if (Object.keys(sizesByColor).length === 0) {
       (p.colors || []).forEach((c) => {
         sizesByColor[c] = new Set(p.sizes || []);
       });
     }
 
-    const colors =
-      p.colors && p.colors.length > 0
-        ? p.colors
-        : Object.keys(sizesByColor) || [];
+    // Only show colors that actually have at least one size option
+    let colors = Object.keys(sizesByColor);
+    if (!colors.length && p.colors && p.colors.length > 0) {
+      colors = p.colors;
+    }
 
     const getSizeOptionsHtml = (colorVal) => {
       const setForColor = sizesByColor[colorVal];
@@ -1373,6 +1390,7 @@ function renderShop() {
     productGrid.appendChild(div);
   });
 }
+
 
 function initShop() {
   if (!productGrid) return;
