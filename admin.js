@@ -1,15 +1,29 @@
 // admin.js
 // Assumes API_BASE is defined in config.js
 
+// Helper: always send session cookies to the backend for admin routes
+function adminFetch(path, options = {}) {
+  const url = `${API_BASE}${path}`;
+
+  return fetch(url, {
+    // IMPORTANT: this lets the browser send/receive the session cookie
+    credentials: "include",
+    // Allow caller to override/add anything
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // =======================
   //  AUTH GUARD
   // =======================
   async function ensureAdminSession() {
     try {
-      const res = await fetch(`${API_BASE}/admin/me`, {
-        credentials: "include",
-      });
+      const res = await adminFetch("/admin/me");
 
       if (res.ok) {
         // Optionally read admin info:
@@ -99,9 +113,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!bannerTextInput || !bannerVisibleCheckbox) return;
 
     try {
-      const res = await fetch(`${API_BASE}/admin/config`, {
-        // GET /admin/config is public, no cookies needed
-      });
+      // Public GET: no auth required
+      const res = await fetch(`${API_BASE}/admin/config`);
 
       if (!res.ok) {
         throw new Error("Failed to load banner config");
@@ -186,10 +199,8 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus(shippingStatusEl, "Saving shipping settings...", false);
 
     try {
-      const res = await fetch(`${API_BASE}/admin/config`, {
+      const res = await adminFetch("/admin/config", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // send admin session cookie
         body: JSON.stringify(payload),
       });
 
@@ -304,9 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     try {
-      const res = await fetch(`${API_BASE}/admin/orders`, {
-        credentials: "include", // send admin cookie
-      });
+      const res = await adminFetch("/admin/orders");
 
       if (res.status === 401) {
         ordersTbody.innerHTML = `
@@ -367,10 +376,8 @@ document.addEventListener("DOMContentLoaded", () => {
       target.textContent = "Saving...";
 
       try {
-        const res = await fetch(`${API_BASE}/admin/orders/${orderId}`, {
+        const res = await adminFetch(`/admin/orders/${orderId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             status,
             trackingNumber,
@@ -530,9 +537,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus(flagsStatusEl, "Loading products...", false);
 
     try {
-      const res = await fetch(`${API_BASE}/admin/products`, {
-        credentials: "include",
-      });
+      const res = await adminFetch("/admin/products");
 
       if (res.status === 401) {
         flagsTbody.innerHTML = `
@@ -570,66 +575,63 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function saveAdminProducts() {
-  if (!flagsTbody) return;
+    if (!flagsTbody) return;
 
-  showStatus(flagsStatusEl, "Saving product flags...", false);
+    showStatus(flagsStatusEl, "Saving product flags...", false);
 
-  const rows = flagsTbody.querySelectorAll('tr[data-product-id]');
-  const updates = [];
+    const rows = flagsTbody.querySelectorAll("tr[data-product-id]");
+    const updates = [];
 
-  rows.forEach((row) => {
-    const id = row.getAttribute("data-product-id");
-    if (!id) return;
+    rows.forEach((row) => {
+      const id = row.getAttribute("data-product-id");
+      if (!id) return;
 
-    const pinToTopEl = row.querySelector(".flag-pinToTop");
-    const hideOnlineEl = row.querySelector(".flag-hideOnline");
-    const hideKioskEl = row.querySelector(".flag-hideKiosk");
-    const ribbonTypeEl = row.querySelector(".flag-ribbonType");
-    const ribbonTextEl = row.querySelector(".flag-ribbonCustomText");
+      const pinToTopEl = row.querySelector(".flag-pinToTop");
+      const hideOnlineEl = row.querySelector(".flag-hideOnline");
+      const hideKioskEl = row.querySelector(".flag-hideKiosk");
+      const ribbonTypeEl = row.querySelector(".flag-ribbonType");
+      const ribbonTextEl = row.querySelector(".flag-ribbonCustomText");
 
-    const ribbonType = ribbonTypeEl ? ribbonTypeEl.value || "none" : "none";
-    const ribbonCustomText = ribbonTextEl ? ribbonTextEl.value || "" : "";
+      const ribbonType = ribbonTypeEl ? ribbonTypeEl.value || "none" : "none";
+      const ribbonCustomText = ribbonTextEl ? ribbonTextEl.value || "" : "";
 
-    const isNew = ribbonType === "new";
-    const isFeatured = ribbonType === "featured";
+      const isNew = ribbonType === "new";
+      const isFeatured = ribbonType === "featured";
 
-    const flags = {
-      isNew,
-      isFeatured,
-      pinToTop: !!(pinToTopEl && pinToTopEl.checked),
-      hideOnline: !!(hideOnlineEl && hideOnlineEl.checked),
-      hideKiosk: !!(hideKioskEl && hideKioskEl.checked),
-      ribbonType,
-      ribbonCustomText,
-    };
+      const flags = {
+        isNew,
+        isFeatured,
+        pinToTop: !!(pinToTopEl && pinToTopEl.checked),
+        hideOnline: !!(hideOnlineEl && hideOnlineEl.checked),
+        hideKiosk: !!(hideKioskEl && hideKioskEl.checked),
+        ribbonType,
+        ribbonCustomText,
+      };
 
-    updates.push({ id, flags });
-  });
-
-  try {
-    const res = await fetch(`${API_BASE}/admin/products`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ products: updates }),
+      updates.push({ id, flags });
     });
 
-    const data = await res.json().catch(() => ({}));
+    try {
+      const res = await adminFetch("/admin/products", {
+        method: "PUT",
+        body: JSON.stringify({ products: updates }),
+      });
 
-    if (!res.ok) {
-      const msg = data.error || "Failed to save product flags.";
-      showStatus(flagsStatusEl, msg, true);
-      return;
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data.error || "Failed to save product flags.";
+        showStatus(flagsStatusEl, msg, true);
+        return;
+      }
+
+      console.log("Saved productConfig:", data);
+      showStatus(flagsStatusEl, "Product flags saved.", false);
+    } catch (err) {
+      console.error("Error saving product flags:", err);
+      showStatus(flagsStatusEl, "Error saving product flags.", true);
     }
-
-    console.log("Saved productConfig:", data);
-    showStatus(flagsStatusEl, "Product flags saved.", false);
-  } catch (err) {
-    console.error("Error saving product flags:", err);
-    showStatus(flagsStatusEl, "Error saving product flags.", true);
   }
-}
-
 
   // =======================
   //  CATALOG / INVENTORY SYNC
@@ -640,10 +642,8 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus(syncStatusEl, `${label}…`, false);
 
     try {
-      const res = await fetch(`${API_BASE}${path}`, {
+      const res = await adminFetch(path, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({}),
       });
 

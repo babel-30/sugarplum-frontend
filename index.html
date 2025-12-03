@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>  
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -25,6 +25,15 @@
         <!-- kiosk link intentionally removed; kiosk is for direct link / QR -->
       </nav>
     </header>
+
+    <!-- Global Sugar Plum alert modal -->
+    <div id="spc-alert-overlay" class="spc-alert-overlay">
+      <div class="spc-alert spc-alert-info">
+        <h3 class="spc-alert-title">Heads up!</h3>
+        <p class="spc-alert-message"></p>
+        <button class="spc-alert-button" type="button">OK</button>
+      </div>
+    </div>
 
     <!-- Announcement bar (populated from /admin/config) -->
     <section class="announcement-bar" id="announcement-bar">

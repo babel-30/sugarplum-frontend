@@ -1581,4 +1581,72 @@ body.admin {
   transform: scale(1.12);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
+/* ========== SUGAR PLUM ALERT MODAL ========== */
 
+.spc-alert-overlay {
+  position: fixed;
+  inset: 0;
+  display: none; /* shown via .active / .is-visible */
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+}
+
+/* Support both class names so JS can use either */
+.spc-alert-overlay.active,
+.spc-alert-overlay.is-visible {
+  display: flex;
+}
+
+.spc-alert {
+  background: #ffffff;
+  color: #6a4d7a;
+  padding: 1.75rem 2rem;
+  border-radius: 20px;
+  max-width: 420px;
+  width: calc(100% - 3rem);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  text-align: left;
+  border: 3px solid #b42ea0;
+}
+
+.spc-alert.spc-alert-error {
+  border-color: #e03a5d;
+}
+
+.spc-alert-title {
+  font-family: var(--font-heading);
+  font-size: 1.9rem;
+  margin: 0 0 0.5rem;
+  color: #b42ea0;
+}
+
+.spc-alert.spc-alert-error .spc-alert-title {
+  color: #e03a5d;
+}
+
+.spc-alert-message {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+
+.spc-alert-button {
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  background: #b42ea0;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.spc-alert-button:hover {
+  background: #7c1d72;
+}

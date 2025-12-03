@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -79,6 +79,35 @@
       </div>
     </div>
   </main>
+
+
+  <!-- ====================================================== -->
+  <!-- AUTO REFRESH INVENTORY AFTER SQUARE REDIRECT -->
+  <!-- ====================================================== -->
+  <script>
+    // Detect production
+    const IS_PROD = window.location.hostname.includes("shopsugarplum.co");
+
+    // Same API base the rest of the site uses
+    const API_BASE = IS_PROD
+      ? "https://shopsugarplum.co"
+      : "http://localhost:3000";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("Thank-you: triggering post-checkout inventory refresh...");
+
+      fetch(`${API_BASE}/admin/refresh-inventory`, {
+        method: "POST",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Inventory refreshed after checkout:", data);
+        })
+        .catch((err) => {
+          console.error("Auto inventory refresh failed:", err);
+        });
+    });
+  </script>
 
 </body>
 </html>

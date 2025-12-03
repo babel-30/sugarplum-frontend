@@ -1,4 +1,4 @@
-// ========== CONFIG ========== 
+// ========== CONFIG ==========  
 
 // Shipping config defaults (front-end; overwritten by admin settings on cart page)
 let SHIPPING_FLAT_RATE = 6.95; // example USPS-ish flat rate for ~3 shirts
@@ -198,26 +198,85 @@ function saveCartToStorage() {
   }
 }
 
+// ========== SUGAR PLUM ALERT MODAL ==========
+// (Fixed: lazy-init after DOM is ready so popups actually work everywhere)
+
+let spcAlertOverlay = null;
+let spcAlertTitleEl = null;
+let spcAlertMsgEl = null;
+let spcAlertBtnEl = null;
+
+function initSpcAlertModal() {
+  spcAlertOverlay = document.getElementById("spc-alert-overlay");
+  if (!spcAlertOverlay) {
+    // Overlay not present on this page; showSpcAlert will NO LONGER use window.alert.
+    // It will just log to console instead so we don’t get annoying browser popups.
+    return;
+  }
+
+  spcAlertTitleEl = spcAlertOverlay.querySelector(".spc-alert-title");
+  spcAlertMsgEl = spcAlertOverlay.querySelector(".spc-alert-message");
+  spcAlertBtnEl = spcAlertOverlay.querySelector(".spc-alert-button");
+
+  if (spcAlertBtnEl) {
+    spcAlertBtnEl.addEventListener("click", () => {
+      spcAlertOverlay.classList.remove("active");
+    });
+  }
+
+  spcAlertOverlay.addEventListener("click", (e) => {
+    if (e.target === spcAlertOverlay) {
+      spcAlertOverlay.classList.remove("active");
+    }
+  });
+}
+
+function showSpcAlert(message, type = "info") {
+  // If the fancy overlay isn’t available on this page, do NOT use native alert.
+  // Just log to the console so we don't slam the user with popups.
+  if (!spcAlertOverlay || !spcAlertMsgEl || !spcAlertTitleEl) {
+    console.warn("Sugar Plum alert:", type, message);
+    return;
+  }
+
+  const alertBox = spcAlertOverlay.querySelector(".spc-alert");
+  if (alertBox) {
+    alertBox.className = "spc-alert spc-alert-" + type;
+  }
+
+  spcAlertMsgEl.textContent = message;
+
+  if (type === "error") {
+    spcAlertTitleEl.textContent = "Uh-oh!";
+  } else if (type === "warning") {
+    spcAlertTitleEl.textContent = "Heads Up!";
+  } else {
+    spcAlertTitleEl.textContent = "Notice";
+  }
+
+  spcAlertOverlay.classList.add("active");
+}
+
+
 // Global cart state
 let cart = loadCartFromStorage();
 
 // Common cart UI elements (may be null on some pages)
 
 // Header bubble (index.html)
-const cartCountEl = document.getElementById("cart-count");   // little bubble count
-const cartTotalEl = document.getElementById("cart-total");   // little bubble subtotal (no $)
+const cartCountEl = document.getElementById("cart-count"); // little bubble count
+const cartTotalEl = document.getElementById("cart-total"); // little bubble subtotal (no $)
 
 // Cart page summary (cart.html)
-const cartSummaryItemsEl   = document.getElementById("summary-total-items");
+const cartSummaryItemsEl = document.getElementById("summary-total-items");
 const cartSummarySubtotalEl = document.getElementById("summary-subtotal");
-const cartDetailsEl        = document.getElementById("cart-details");
+const cartDetailsEl = document.getElementById("cart-details");
 
 // Cart page money breakdown
-const cartShippingEl    = document.getElementById("summary-shipping");
-const cartGrandTotalEl  = document.getElementById("summary-order-total");
-const cartFeeEl         = document.getElementById("summary-convenience-fee");
-const cartTaxEl         = document.getElementById("summary-sales-tax");
-
+const cartShippingEl = document.getElementById("summary-shipping");
+const cartGrandTotalEl = document.getElementById("summary-order-total");
+const cartFeeEl = document.getElementById("summary-convenience-fee");
+const cartTaxEl = document.getElementById("summary-sales-tax");
 
 // Free shipping banner
 const freeShipBannerEl = document.getElementById("free-shipping-banner");
@@ -243,7 +302,7 @@ function computeShipping(subtotal) {
 // NOTE: backend still recomputes true fee/tax; this is just visual guidance.
 async function handleCheckoutClick() {
   if (!cart || !cart.length) {
-    alert("Your cart is empty.");
+    showSpcAlert("Your cart is empty.", "warning");
     return;
   }
 
@@ -260,11 +319,11 @@ async function handleCheckoutClick() {
   };
 
   if (!customer.name) {
-    alert("Please enter your name.");
+    showSpcAlert("Please enter your name.", "warning");
     return;
   }
   if (!customer.email) {
-    alert("Please enter your email address.");
+    showSpcAlert("Please enter your email address.", "warning");
     return;
   }
 
@@ -284,10 +343,11 @@ async function handleCheckoutClick() {
       type: item.type,
       color: item.color,
       size: item.size,
-      printSide: item.printSide || null, // new field for Front / Back etc.
+      printSide: item.printSide || null, // Front / Back / Front & Back
       price: Math.round(item.price * 100), // cents
       quantity: item.qty || 1,
-      squareVariationId: item.squareVariationId || null,
+      squareVariationId: item.squareVariationId || item.catalogObjectId || null,
+      catalogObjectId: item.catalogObjectId || item.squareVariationId || null,
     }));
 
     const body = {
@@ -305,20 +365,120 @@ async function handleCheckoutClick() {
       body: JSON.stringify(body),
     });
 
+    // ===== SPECIAL CASE: inventory conflict (409 OUT_OF_STOCK) =====
+    if (res.status === 409) {
+      let errJson = {};
+      try {
+        errJson = await res.json();
+      } catch (_) {
+        errJson = {};
+      }
+
+      if (
+        errJson &&
+        errJson.type === "OUT_OF_STOCK" &&
+        Array.isArray(errJson.conflicts)
+      ) {
+        const conflicts = errJson.conflicts;
+
+        // Adjust the local cart based on what the server says is left
+        conflicts.forEach((conf) => {
+          const pid = conf.productId || null;
+          const confColor = (conf.color || "").toLowerCase();
+          const confSize = (conf.size || "").toLowerCase();
+          const available =
+            typeof conf.availableQty === "number" ? conf.availableQty : 0;
+
+          for (let i = cart.length - 1; i >= 0; i--) {
+            const item = cart[i];
+            const itemColor = (item.color || "").toLowerCase();
+            const itemSize = (item.size || "").toLowerCase();
+
+            const sameProduct =
+              (!!pid && item.id === pid) ||
+              (!pid && item.name === conf.name); // loose fallback by name
+
+            if (
+              sameProduct &&
+              itemColor === confColor &&
+              itemSize === confSize
+            ) {
+              if (available <= 0) {
+                // Completely gone → remove from cart
+                cart.splice(i, 1);
+              } else if (available < item.qty) {
+                // Only partially available → clamp qty
+                item.qty = available;
+              }
+            }
+          }
+        });
+
+        // Persist + refresh UI
+        saveCartToStorage();
+        updateCartDisplay();
+
+        // Optional: refresh products so stock/status reflect new reality
+        try {
+          await loadProducts();
+        } catch (e) {
+          console.warn("Failed to reload products after conflict:", e);
+        }
+
+        // Build a friendly message for the customer
+        const lines = conflicts.map((c) => {
+          const name = c.name || "Item";
+          const color = c.color ? ` – Color: ${c.color}` : "";
+          const size = c.size ? ` – Size: ${c.size}` : "";
+          const req = typeof c.requestedQty === "number" ? c.requestedQty : "?";
+          const avail =
+            typeof c.availableQty === "number" && c.availableQty >= 0
+              ? c.availableQty
+              : 0;
+
+          if (avail <= 0) {
+            return `• ${name}${color}${size} is no longer available and was removed from your cart.`;
+          } else if (avail < req) {
+            return `• ${name}${color}${size}: you requested ${req}, but only ${avail} remain. Your cart was updated to ${avail}.`;
+          } else {
+            return `• ${name}${color}${size}: quantity adjusted based on current stock.`;
+          }
+        });
+
+        const fullMessage =
+          "Looks like one or more items in your cart just sold out or changed while you were checking out.\n\n" +
+          "We’ve updated your cart to match what’s currently available. Please review your cart and try checkout again.\n\n" +
+          lines.join("\n");
+
+        showSpcAlert(fullMessage, "warning");
+        return; // stop here; do NOT redirect to Square
+      }
+
+      // If we got a 409 but without the structured payload, fall through to generic error
+    }
+
+    // ===== Generic non-OK error handling =====
     if (!res.ok) {
       console.error("Checkout error status:", res.status);
-      const err = await res.json().catch(() => ({}));
-      alert(
+      let err = {};
+      try {
+        err = await res.json();
+      } catch (_) {
+        err = {};
+      }
+      showSpcAlert(
         "There was a problem starting checkout: " +
-          (err.error || "Unknown error")
+          (err.error || `HTTP ${res.status}`),
+        "error"
       );
       return;
     }
 
+    // ===== Success: go to Square checkout =====
     const data = await res.json();
 
     if (!data.checkoutUrl) {
-      alert("Checkout URL missing from server response.");
+      showSpcAlert("Checkout URL missing from server response.", "error");
       return;
     }
 
@@ -326,7 +486,10 @@ async function handleCheckoutClick() {
     window.location.href = data.checkoutUrl;
   } catch (error) {
     console.error("Checkout failed:", error);
-    alert("Something went wrong starting checkout. Please try again.");
+    showSpcAlert(
+      "Something went wrong starting checkout. Please try again.",
+      "error"
+    );
   }
 }
 
@@ -373,8 +536,8 @@ function initImageModalHandlers() {
 
 // ========== CART RENDERING & HELPERS ==========
 
-// Helper: find Square variation ID for a given product/color/size
-function findSquareVariationId(product, color, size) {
+// Helper: find the full Square variation object for a given product/color/size
+function findSquareVariation(product, color, size) {
   if (!Array.isArray(product.squareVariations)) return null;
 
   const colorLower = (color || "").toLowerCase();
@@ -386,7 +549,15 @@ function findSquareVariationId(product, color, size) {
     return vColor === colorLower && vSize === sizeLower;
   });
 
-  return match ? match.id || null : null;
+  return match || null;
+}
+
+// Helper: find Square variation ID for a given product/color/size
+// (now prefers catalogObjectId, falls back to id)
+function findSquareVariationId(product, color, size) {
+  const match = findSquareVariation(product, color, size);
+  if (!match) return null;
+  return match.catalogObjectId || match.id || null;
 }
 
 // Helper: pull qty out of a variation from any of several possible fields
@@ -478,7 +649,10 @@ function updateCartItemQuantity(index, newQty) {
     let finalQty = newQty;
     if (finalQty > maxQty) {
       finalQty = maxQty;
-      alert("You’ve reached the maximum available stock for this item.");
+      showSpcAlert(
+        "You’ve reached the maximum available stock for this item.",
+        "warning"
+      );
     }
     item.qty = finalQty;
   }
@@ -563,10 +737,7 @@ function renderCartDetails() {
 
 function updateCartDisplay() {
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
-  const subtotal = cart.reduce(
-    (sum, item) => sum + item.qty * item.price,
-    0
-  );
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
 
   // ----- Shipping -----
   const shipping = computeShipping(subtotal);
@@ -591,9 +762,7 @@ function updateCartDisplay() {
   // ----- Estimated Sales Tax: on (items + shipping), NOT the fee -----
   const taxBase = subtotal + shipping;
   const estimatedTax =
-    localTaxRate > 0
-      ? Number((taxBase * localTaxRate).toFixed(2))
-      : 0;
+    localTaxRate > 0 ? Number((taxBase * localTaxRate).toFixed(2)) : 0;
 
   // ----- Grand Total (estimate) -----
   const grandTotal = subtotal + shipping + convenienceFee + estimatedTax;
@@ -639,7 +808,6 @@ function updateCartDisplay() {
   renderCartDetails();
 }
 
-
 // ========== STOCK STATUS HELPER ==========
 function getStockStatus(product) {
   const inv = typeof product.inventory === "number" ? product.inventory : 0;
@@ -659,16 +827,18 @@ function getStockStatus(product) {
   }
 }
 
-// Add-to-cart with stock limit enforcement
+// Add-to-cart with stock limit enforcement + variant-specific price/IDs
 function addToCart(product, color, size, qty, printSide = null) {
   if (qty <= 0) return;
+
+  const normalizedPrintSide = printSide || null;
 
   const existing = cart.find(
     (item) =>
       item.id === product.id &&
       item.color === color &&
       item.size === size &&
-      (item.printSide || null) === (printSide || null)
+      (item.printSide || null) === normalizedPrintSide
   );
 
   // Build a temporary "cart item" shape for stock lookup
@@ -684,7 +854,10 @@ function addToCart(product, color, size, qty, printSide = null) {
 
   if (requestedTotal > maxAvailable) {
     requestedTotal = maxAvailable;
-    alert("You’ve reached the maximum available stock for this item.");
+    showSpcAlert(
+      "You’ve reached the maximum available stock for this item.",
+      "warning"
+    );
   }
 
   const amountToAdd = requestedTotal - currentQty;
@@ -693,22 +866,43 @@ function addToCart(product, color, size, qty, printSide = null) {
     return;
   }
 
+  // Look up the matching variation so we can use its price and ID
+  const variation = findSquareVariation(product, color, size);
+  let priceDollars = product.price; // fallback
+  let variationId = null;
+
+  if (variation) {
+    if (typeof variation.price === "number") {
+      priceDollars = variation.price;
+    } else if (variation.price != null) {
+      const parsed = Number(variation.price);
+      if (!Number.isNaN(parsed)) {
+        priceDollars = parsed;
+      }
+    }
+
+    variationId = variation.catalogObjectId || variation.id || null;
+  }
+
   if (existing) {
     existing.qty = requestedTotal;
+    // keep price and IDs synced with current Square variation
+    existing.price = priceDollars;
+    existing.squareVariationId = variationId;
+    existing.catalogObjectId = variationId;
   } else {
-    const variationId = findSquareVariationId(product, color, size);
-
     cart.push({
       id: product.id,
       name: product.name,
       type: product.type,
-      price: product.price, // dollars
+      price: priceDollars, // dollars, variant-specific
       color,
       size,
-      printSide: printSide || null,
+      printSide: normalizedPrintSide,
       qty: requestedTotal,
       image: product.image || null,
       squareVariationId: variationId,
+      catalogObjectId: variationId,
     });
   }
 
@@ -857,6 +1051,24 @@ function productMatchesFilters(p, typeFilter, audienceFilter) {
   return matchesType && matchesAudience;
 }
 
+// Helper: get the correct variant price for a given color/size (fallback to product base price)
+function getVariantPrice(product, color, size) {
+  // Uses the shared helper we defined earlier
+  const variation = findSquareVariation(product, color, size);
+  if (variation) {
+    if (typeof variation.price === "number") {
+      return variation.price;
+    } else if (variation.price != null) {
+      const parsed = Number(variation.price);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  // Fallback: product-level base price
+  return product.price || 0;
+}
+
 function renderShop() {
   if (!productGrid) return;
 
@@ -929,8 +1141,8 @@ function renderShop() {
     }
 
     if (Object.keys(sizesByColor).length === 0) {
-      p.colors.forEach((c) => {
-        sizesByColor[c] = new Set(p.sizes);
+      (p.colors || []).forEach((c) => {
+        sizesByColor[c] = new Set(p.sizes || []);
       });
     }
 
@@ -945,14 +1157,22 @@ function renderShop() {
       if (setForColor && setForColor.size > 0) {
         sizesArr = Array.from(setForColor);
       } else {
-        sizesArr = p.sizes;
+        sizesArr = p.sizes || [];
       }
-      return sizesArr
-        .map((s) => `<option value="${s}">${s}</option>`)
-        .join("");
+      return sizesArr.map((s) => `<option value="${s}">${s}</option>`).join("");
     };
 
     const initialColor = colors[0] || Object.keys(sizesByColor)[0] || "";
+
+    // Determine initial size for that color
+    let initialSize = "";
+    const initialSet = sizesByColor[initialColor];
+    if (initialSet && initialSet.size > 0) {
+      initialSize = Array.from(initialSet)[0];
+    } else if (p.sizes && p.sizes.length > 0) {
+      initialSize = p.sizes[0];
+    }
+
     const initialSizeOptions = getSizeOptionsHtml(initialColor);
 
     // ----- Build print locations from product.printLocations or variations -----
@@ -999,6 +1219,9 @@ function renderShop() {
     `
       : "";
 
+    // Compute initial display price based on initial color/size
+    const initialPrice = getVariantPrice(p, initialColor, initialSize);
+
     div.innerHTML = `
       <div class="product-image-wrap">
         ${ribbonHtml}
@@ -1012,13 +1235,11 @@ function renderShop() {
       </div>
 
       ${
-        p.image
-          ? `<button class="product-view-btn">View Larger</button>`
-          : ""
+        p.image ? `<button class="product-view-btn">View Larger</button>` : ""
       }
 
       <h3 class="product-name">${p.name}</h3>
-      <p class="product-type">${typeLabel}$${p.price.toFixed(2)}</p>
+      <p class="product-type">${typeLabel}$${initialPrice.toFixed(2)}</p>
       <p class="stock-status ${stock.cssClass}">${stock.text}</p>
 
       <label>
@@ -1060,13 +1281,58 @@ function renderShop() {
     const qtyInput = div.querySelector(".product-qty");
     const addBtn = div.querySelector(".add-to-cart");
     const viewBtn = div.querySelector(".product-view-btn");
+    const priceEl = div.querySelector(".product-type");
+
+    // Helper to sync displayed price with current color/size selection
+    function updateDisplayedPrice() {
+      const selectedColor =
+        (colorSelect && colorSelect.value) || initialColor || "Default";
+
+      let selectedSize =
+        (sizeSelect && sizeSelect.value) || initialSize || "Standard";
+
+      // If size is blank for some reason, try first option in sizeSelect
+      if ((!selectedSize || selectedSize === "") && sizeSelect) {
+        const opt = sizeSelect.options[0];
+        if (opt) selectedSize = opt.value;
+      }
+
+      const price = getVariantPrice(p, selectedColor, selectedSize);
+      if (priceEl) {
+        priceEl.textContent = `${typeLabel}$${price.toFixed(2)}`;
+      }
+    }
 
     if (colorSelect && sizeSelect) {
+      // Set initial values
+      if (initialColor) colorSelect.value = initialColor;
+      if (initialSize) sizeSelect.value = initialSize;
+
       colorSelect.addEventListener("change", () => {
         const selectedColor = colorSelect.value;
         sizeSelect.innerHTML = getSizeOptionsHtml(selectedColor);
+
+        // Pick a reasonable default size for the new color
+        const setForColor = sizesByColor[selectedColor];
+        const newSize =
+          setForColor && setForColor.size > 0
+            ? Array.from(setForColor)[0]
+            : (p.sizes && p.sizes[0]) || "";
+
+        if (newSize) {
+          sizeSelect.value = newSize;
+        }
+
+        updateDisplayedPrice();
+      });
+
+      sizeSelect.addEventListener("change", () => {
+        updateDisplayedPrice();
       });
     }
+
+    // Initialize price once everything is wired up
+    updateDisplayedPrice();
 
     if (addBtn && !isOutOfStock) {
       addBtn.addEventListener("click", () => {
@@ -1083,7 +1349,7 @@ function renderShop() {
 
         const qty = parseInt(qtyInput.value, 10) || 1;
 
-        // Call the existing addToCart logic
+        // Call the existing addToCart logic (which now uses variant-specific price & IDs)
         addToCart(p, color, size, qty, printSide);
 
         // Temporary "Added to cart" feedback on the button
@@ -1208,14 +1474,12 @@ const kioskClearFiltersBtn = document.getElementById("kiosk-clear-filters");
 function sortByMasterOrder(values, masterList) {
   const orderMap = new Map();
   masterList.forEach((val, idx) => orderMap.set(val, idx));
-  return values
-    .slice()
-    .sort((a, b) => {
-      const ai = orderMap.has(a) ? orderMap.get(a) : 999;
-      const bi = orderMap.has(b) ? orderMap.get(b) : 999;
-      if (ai !== bi) return ai - bi;
-      return a.localeCompare(b);
-    });
+  return values.slice().sort((a, b) => {
+    const ai = orderMap.has(a) ? orderMap.get(a) : 999;
+    const bi = orderMap.has(b) ? orderMap.get(b) : 999;
+    if (ai !== bi) return ai - bi;
+    return a.localeCompare(b);
+  });
 }
 
 function getAllAvailableSizesFromProducts() {
@@ -1478,9 +1742,7 @@ function renderKiosk() {
       </div>
 
       ${
-        p.image
-          ? `<button class="product-view-btn">View Larger</button>`
-          : ""
+        p.image ? `<button class="product-view-btn">View Larger</button>` : ""
       }
 
       <h2 class="product-name kiosk-name">${p.name}</h2>
@@ -1722,6 +1984,9 @@ async function loadProducts() {
 
 // ========== INITIALIZE ==========
 document.addEventListener("DOMContentLoaded", () => {
+  // Init custom alert modal first so all showSpcAlert calls work
+  initSpcAlertModal();
+
   loadAnnouncementBanner();
 
   if (typeof initImageModalHandlers === "function") {
@@ -1770,7 +2035,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-
 
 // ===============================
 //  CART PAGE: SHIPPING/FEE/TAX + BANNER
