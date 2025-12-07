@@ -138,12 +138,12 @@
         </div>
       </section>
 
-      <!-- Inventory / Product Flags -->
+      <!-- Product Flags -->
       <section class="card admin-section" id="flags-section">
         <div class="flags-header-row">
-          <h2>Inventory &amp; Product Flags</h2>
+          <h2>Product Flags</h2>
           <button type="button" id="flags-toggle-btn" class="flags-toggle-btn">
-            Collapse
+            Expand Products
           </button>
         </div>
 
@@ -153,11 +153,26 @@
           which ribbon/tag appears on the product card (New, Featured, Custom).
         </p>
 
-        <p id="products-status" class="admin-status"></p>
+                <p id="products-status" class="admin-status"></p>
 
         <div class="flags-body">
+          <!-- Product Flags search / filter controls -->
+          <div class="flags-controls">
+            <input
+              type="text"
+              id="flags-search"
+              class="admin-input"
+              placeholder="Search by name, subcategory…"
+            />
+
+            <select id="flags-filter-subcat" class="admin-input">
+              <option value="">All subcategories</option>
+              <!-- options filled by JS -->
+            </select>
+          </div>
+
           <div class="table-wrapper products-table-wrapper">
-            <table class="admin-table">
+            <table class="admin-table product-flags-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -186,6 +201,7 @@
         </div>
       </section>
 
+
       <!-- Catalog & Inventory Sync -->
       <section class="card admin-section" id="sync-section">
         <h2>Catalog &amp; Inventory Sync</h2>
@@ -206,10 +222,109 @@
 
         <p id="sync-status" class="admin-status"></p>
       </section>
+      <!-- Inventory Management (renamed from Barcode Labels) -->
+      <section class="card admin-section" id="barcode-section">
+        <!-- Header row: title left, pill button right -->
+        <div class="flags-header-row">
+          <h2>Inventory Management</h2>
+          <button
+            type="button"
+            id="barcode-toggle-btn"
+            class="flags-toggle-btn"
+          >
+            Expand Inventory
+          </button>
+        </div>
 
-      <!-- Orders Card -->
-      <section class="card admin-section">
-        <h2>Recent Orders</h2>
+        <!-- Description ALWAYS visible -->
+        <p class="admin-help-text">
+          Search for products, record your counted quantities, print fresh
+          barcode labels, and send your +/- adjustments straight back to
+          Square so everything stays in sync.
+        </p>
+
+        <!-- Collapsible body -->
+        <div class="barcode-body">
+          <div class="barcode-controls">
+            <input
+              type="text"
+              id="barcode-search"
+              class="admin-input"
+              placeholder="Search by name, SKU, color, size…"
+            />
+
+            <select id="barcode-filter-subcat" class="admin-input">
+              <option value="">All subcategories</option>
+              <!-- options filled by JS -->
+            </select>
+
+            <label class="admin-checkbox">
+              <input type="checkbox" id="barcode-show-zero" />
+              <span>Show zero-stock variants</span>
+            </label>
+
+            <button
+              type="button"
+              id="barcode-refresh-btn"
+              class="btn-secondary"
+            >
+              Refresh from Square
+            </button>
+          </div>
+
+          <p id="barcode-info" class="admin-help-text small"></p>
+
+          <!-- JS will render:
+               - current qty
+               - counted qty
+               - labels to print
+          -->
+          <div id="barcode-products-container"></div>
+
+          <div class="barcode-actions-row">
+            <button
+              type="button"
+              id="barcode-print-selected-btn"
+              class="btn-primary"
+            >
+              Print selected labels
+            </button>
+
+            <!-- Send counts to Square -->
+            <button
+              type="button"
+              id="barcode-apply-inventory-btn"
+              class="btn-secondary"
+            >
+              Send counts to Square
+            </button>
+
+            <!-- Output options -->
+            <label class="admin-checkbox barcode-print-option">
+              <input type="checkbox" id="barcode-print-to-label" checked />
+              <span>Print to label printer</span>
+            </label>
+
+            <span id="barcode-status" class="admin-status"></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders Card (collapsible) -->
+      <section class="card admin-section" id="orders-section">
+        <!-- Header row: title left, pill button right -->
+        <div class="flags-header-row">
+          <h2>Recent Orders</h2>
+          <button
+            type="button"
+            id="orders-toggle-btn"
+            class="flags-toggle-btn"
+          >
+            Expand Orders
+          </button>
+        </div>
+
+        <!-- Description ALWAYS visible -->
         <p class="admin-help-text">
           Quick view of recent orders created from your website checkout. You
           can update status, add tracking, and mark an order as
@@ -217,33 +332,37 @@
           removed from this list and moved into the downloadable archive.
         </p>
 
-        <div class="admin-orders-controls">
-          <button id="refresh-orders" class="btn-secondary">
-            Refresh Orders
-          </button>
-        </div>
+        <!-- Collapsible body -->
+        <div class="orders-body">
+          <div class="admin-orders-controls">
+            <button id="refresh-orders" class="btn-secondary">
+              Refresh Orders
+            </button>
+          </div>
 
-        <div class="table-wrapper">
-          <table class="admin-table" id="orders-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Tracking #</th>
-                <th>Packing List</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="orders-tbody">
-              <tr>
-                <td colspan="7">Loading orders…</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-wrapper">
+            <table class="admin-table" id="orders-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Tracking #</th>
+                  <th>Packing List</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <tr>
+                  <td colspan="7">Loading orders…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
+
 
       <!-- Order Archive Download Section -->
       <section class="card admin-section">
@@ -261,7 +380,7 @@
 
         <p id="archive-status" class="admin-status"></p>
       </section>
-    </main>
+
 
     <script src="config.js"></script>
     <script src="admin.js"></script>

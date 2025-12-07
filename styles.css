@@ -39,6 +39,8 @@ body {
   padding: 0;
   background: var(--bg-soft);
   color: var(--text-main);
+  font-size: 1.125rem; /* ~18px minimum body text */
+  line-height: 1.5;
 }
 
 /* ===================== FLORAL HEADER WITH ROUND LOGO ===================== */
@@ -88,13 +90,13 @@ body {
 .header-nav {
   display: flex;
   gap: 0.75rem;
-  font-size: 0.95rem;
+  font-size: 1.125rem;
 }
 
 .nav-link {
   color: #ffffff;
   text-decoration: none;
-  padding: 0.25rem 0.6rem;
+  padding: 0.35rem 0.9rem;
   border-radius: 999px;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -178,7 +180,7 @@ body {
   text-decoration: none;
   border: none;
   font-family: var(--font-body);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   padding: 12px 28px;
   font-weight: 600;
 }
@@ -249,13 +251,13 @@ main h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.45rem 2.6rem 0.55rem 3.1rem;
+  padding: 0.55rem 2.8rem 0.65rem 3.3rem;
   transform: rotate(-35deg);
   transform-origin: left top;
   text-align: center;
   color: #ffffff;
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   letter-spacing: 0.05em;
   white-space: nowrap;
   border-radius: 999px;
@@ -301,8 +303,8 @@ main h2 {
   color: #b0258e;
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 1rem;
-  padding: 7px 18px;
+  font-size: 1.125rem;
+  padding: 0.45rem 1.4rem;
   font-weight: 600;
 }
 
@@ -313,10 +315,10 @@ main h2 {
   justify-content: center;
   margin: 0.5rem 1.25rem 0;
   margin-left: auto;
-  padding: 0.4rem 1.2rem;
+  padding: 0.5rem 1.5rem;
   border-radius: 999px;
   border: none;
-  font-size: 0.8rem;
+  font-size: 1.125rem;
   cursor: pointer;
   background: #ffffff;
   color: var(--brand-main);
@@ -329,7 +331,7 @@ main h2 {
 .product-name {
   min-height: 2.4em;
   margin: 6px 0 2px;
-  font-size: 0.95rem;
+  font-size: 1.3rem;
   font-weight: 600;
   color: #4c256c;
   text-align: center;
@@ -337,8 +339,8 @@ main h2 {
 
 .product-type {
   min-height: 1.2em;
-  margin-bottom: 4px;
-  font-size: 0.9rem;
+  margin-bottom: 6px;
+  font-size: 1.125rem;
   color: #666666;
   text-align: center;
 }
@@ -348,7 +350,7 @@ main h2 {
 .stock-status {
   min-height: 1.2em;
   margin-bottom: 8px;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   font-weight: 600;
   text-align: center;
 }
@@ -370,52 +372,51 @@ main h2 {
 .product label {
   display: block;
   margin-top: 8px;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   text-align: left;
 }
 
 .product select {
   margin-top: 4px;
   width: 100%;
-  padding: 6px;
+  padding: 0.5rem 0.75rem;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   font-family: var(--font-body);
 }
 
 /* Actions area at bottom of card */
-
 .product-actions {
   margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 0.75rem;
 }
 
 /* Qty input */
-
 .product-qty {
-  width: 60px;
-  padding: 4px;
+  width: 70px;
+  padding: 0.4rem 0.5rem;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
 }
 
 /* Add to cart button (shop) */
-
 .add-to-cart {
   background: var(--brand-main);
-  color: white;
+  color: #ffffff;
   border: none;
-  padding: 6px 10px;
+  padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
+  text-align: center;
+  min-width: 8rem;           /* ensures “Add to Cart” fits */
+  white-space: nowrap;       /* keeps it on one line */
 }
 
 .add-to-cart:disabled {
@@ -424,6 +425,7 @@ main h2 {
   cursor: not-allowed;
 }
 
+
 /* Kiosk "show to cashier" */
 
 .kiosk-product .kiosk-show,
@@ -431,9 +433,9 @@ main h2 {
   background: var(--brand-main);
   color: white;
   border: none;
-  padding: 6px 10px;
+  padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -463,8 +465,8 @@ main h2 {
   border: 1px solid var(--brand-main);
   background: white;
   color: var(--brand-main);
-  padding: 6px 14px;
-  font-size: 0.85rem;
+  padding: 0.6rem 1.3rem;
+  font-size: 1.2rem;
   cursor: pointer;
   font-weight: 600;
   font-family: var(--font-body);
@@ -483,8 +485,8 @@ main h2 {
   border: 1px solid var(--brand-main);
   background: white;
   color: var(--brand-main);
-  padding: 4px 12px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1.2rem;
+  font-size: 1.2rem;
   cursor: pointer;
   font-weight: 600;
   font-family: var(--font-body);
@@ -503,8 +505,8 @@ main h2 {
   border: 1px solid var(--brand-main);
   background: #ffffff;
   color: var(--brand-main);
-  padding: 4px 12px;
-  font-size: 0.8rem;
+  padding: 0.5rem 1.2rem;
+  font-size: 1.2rem;
   cursor: pointer;
   font-weight: 600;
   font-family: var(--font-body);
@@ -531,9 +533,9 @@ main h2 {
 #cart-bar {
   background: white;
   border-radius: 999px;
-  padding: 8px 18px;
+  padding: 0.6rem 1.3rem;
   box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
-  font-size: 0.9rem;
+  font-size: 1.125rem;
   font-weight: 600;
   border: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
@@ -549,8 +551,8 @@ main h2 {
   border: none;
   background: var(--brand-main);
   color: white;
-  padding: 6px 14px;
-  font-size: 0.85rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
@@ -570,7 +572,7 @@ main h2 {
   border-radius: 12px;
   box-shadow: 0px 3px 10px rgba(0, 0, 0, 0.08);
   padding: 10px 14px;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   color: #333;
 }
 
@@ -603,7 +605,7 @@ main h2 {
 }
 
 #cart-details .cart-line-meta {
-  font-size: 0.8rem;
+  font-size: 1.125rem;
   color: #777;
   text-align: right;
 }
@@ -617,7 +619,7 @@ main h2 {
 }
 
 #cart-details .cart-qty {
-  min-width: 20px;
+  min-width: 24px;
   text-align: center;
 }
 
@@ -632,8 +634,8 @@ main h2 {
   border: 1px solid #ccc;
   background: #f7f7f7;
   cursor: pointer;
-  padding: 2px 8px;
-  font-size: 0.8rem;
+  padding: 0.25rem 0.8rem;
+  font-size: 1.125rem;
 }
 
 #cart-details .cart-remove {
@@ -682,7 +684,7 @@ main h2 {
   align-self: flex-end;
   border: none;
   background: transparent;
-  font-size: 1.3rem;
+  font-size: 1.6rem;
   cursor: pointer;
   margin-bottom: 0.25rem;
 }
@@ -694,6 +696,7 @@ body.kiosk {
   color: #ffffff;
   font-family: "Handwash", "Segoe UI", system-ui, -apple-system,
     BlinkMacSystemFont, Arial, sans-serif;
+  font-size: 1.125rem;
 }
 
 .kiosk-hero {
@@ -731,8 +734,8 @@ body.kiosk {
 .kiosk-filter-row button {
   border: none;
   border-radius: 999px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.9rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1.2rem;
   cursor: pointer;
   background: #ffffff;
   color: #6a4d7a;
@@ -745,8 +748,8 @@ body.kiosk {
 
 .kiosk-extra-filters input,
 .kiosk-extra-filters select {
-  padding: 0.3rem 0.5rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 1.125rem;
 }
 
 /* Kiosk grid */
@@ -765,7 +768,7 @@ body.kiosk {
   background: #f9f4ff;
   color: #3a2347;
   border-radius: 16px;
-  padding: 0.75rem;
+  padding: 0.9rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -784,7 +787,7 @@ body.kiosk {
 
 .kiosk-name {
   margin-top: 0.6rem;
-  font-size: 1.05rem;
+  font-size: 1.3rem;
   text-align: center;
 }
 
@@ -815,7 +818,7 @@ body.kiosk {
 
 .kiosk-splash-panel {
   width: min(420px, 90vw);
-  padding: 1.4rem 1.6rem 1.6rem;
+  padding: 1.6rem 1.8rem 1.8rem;
   border-radius: 999px;
   border: 2px solid rgba(255, 255, 255, 0.18);
   background: radial-gradient(circle at top, #3e223e 0, #1a101c 60%, #050306 100%);
@@ -835,18 +838,18 @@ body.kiosk {
 
 .kiosk-splash-panel h1 {
   margin: 0.25rem 0 0.35rem;
-  font-size: 1.5rem;
+  font-size: 1.9rem;
 }
 
 .kiosk-splash-panel p {
   margin: 0.15rem 0;
-  font-size: 0.95rem;
+  font-size: 1.125rem;
   opacity: 0.9;
 }
 
 .kiosk-splash-panel p:last-child {
   margin-top: 0.45rem;
-  font-size: 0.85rem;
+  font-size: 1.125rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.75;
@@ -895,13 +898,13 @@ body.kiosk {
 
 .shop-splash-title {
   margin: 0.25rem 0 0.5rem;
-  font-size: 1.5rem;
+  font-size: 1.9rem;
   font-family: var(--font-heading);
 }
 
 #shop-splash-message {
   margin: 0.4rem 0 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.4;
   max-width: 420px;
   margin-left: auto;
@@ -913,7 +916,7 @@ body.kiosk {
 .product-name,
 .kiosk-name {
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   line-height: 1.3;
 }
 
@@ -925,8 +928,8 @@ body.kiosk {
 #kiosk-audience-filters button,
 .kiosk-filter-row button {
   font-family: var(--font-body) !important;
-  font-size: 1.1rem !important;
-  padding: 10px 24px !important;
+  font-size: 1.2rem !important;
+  padding: 0.6rem 1.4rem !important;
   border-radius: 999px !important;
 }
 
@@ -938,7 +941,7 @@ select,
 .kiosk-extra-filters select,
 .kiosk-extra-filters input {
   font-family: var(--font-body) !important;
-  font-size: 1rem;
+  font-size: 1.125rem;
 }
 
 /* ===================== UTILS ===================== */
@@ -1013,14 +1016,14 @@ select,
   }
 
   .announcement-bar {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     padding: 0.75rem 0.6rem;
   }
 }
 
 @media (max-width: 600px) {
   .hero h2 {
-    font-size: 1.9rem;
+    font-size: 2rem;
   }
 }
 
@@ -1078,7 +1081,7 @@ select,
 
 .cart-page .cart-name-below {
   font-family: "BrittanySignature", cursive;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: normal;
   margin-top: 0.4rem;
   margin-bottom: 0.35rem;
@@ -1087,7 +1090,7 @@ select,
 
 .cart-page .cart-meta-purple {
   font-family: "Handwash", sans-serif;
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: #3a2852;
   opacity: 0.9;
   background: transparent;
@@ -1103,13 +1106,13 @@ select,
 
 .cart-page .cart-line-controls button {
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #b398d8;
   background: #f7f2ff;
   color: #4a3b7a;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.2rem;
 }
 
 .cart-page .cart-line-controls .cart-remove {
@@ -1120,6 +1123,7 @@ select,
 .cart-page .cart-line-total {
   font-weight: 700;
   color: #4a3b7a;
+  font-size: 1.25rem;
 }
 
 .cart-summary-panel {
@@ -1143,8 +1147,8 @@ select,
 .free-shipping-banner {
   background: #fbe7f7;
   border-radius: 999px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #9c2b82;
   text-align: center;
@@ -1155,14 +1159,14 @@ select,
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.5rem;
-  font-size: 1.05rem;
+  font-size: 1.125rem;
 }
 
 .cart-page #cart-summary .cart-summary-grand {
   margin-top: 0.5rem;
   padding-top: 0.4rem;
   border-top: 1px dashed #cbb6ec;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
 }
 
@@ -1173,7 +1177,7 @@ select,
 
 .cart-customer-section h2,
 .cart-shipping-section h2 {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   margin: 0 0 0.6rem;
   color: #2e1b47;
 }
@@ -1181,12 +1185,12 @@ select,
 .cart-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 0.6rem;
-  font-size: 0.95rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.125rem;
 }
 
 .cart-field span {
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.2rem;
 }
 
 .required {
@@ -1197,9 +1201,9 @@ select,
 .cart-field input {
   border-radius: 999px;
   border: 1px solid #d8c7f0;
-  padding: 0.45rem 0.8rem;
+  padding: 0.6rem 0.9rem;
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1.125rem;
   outline: none;
 }
 
@@ -1228,9 +1232,9 @@ select,
   flex: 1;
   text-align: center;
   border-radius: 999px;
-  padding: 0.7rem 0.9rem;
+  padding: 0.8rem 1rem;
   font-family: var(--font-body);
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -1308,47 +1312,76 @@ select,
   gap: 1rem;
 }
 
+/* PILL-STYLE INPUTS / SELECTS / TEXTAREAS ON ADMIN */
 .admin-input {
   width: 100%;
-  padding: 0.75rem;
-  border-radius: 6px;
-  border: none;
+  padding: 0.75rem 1.3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
   outline: none;
+  font-size: 1.125rem;
+  font-family: var(--font-body);
+  background: #ffffff;
+  color: #3a2347;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+/* Textareas still pill-ish but taller */
+textarea.admin-input {
+  border-radius: 24px;
+  min-height: 130px;
   resize: vertical;
-  font-size: 1rem;
+}
+
+.admin-input::placeholder {
+  color: #b48cc7;
+}
+
+.admin-input:focus {
+  border-color: var(--brand-main);
+  box-shadow: 0 0 0 2px rgba(180, 46, 160, 0.25);
 }
 
 .admin-checkbox {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
+  font-size: 1.125rem;
+}
+
+.admin-checkbox input[type="checkbox"] {
+  accent-color: var(--brand-main);
 }
 
 .admin-status {
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
+  font-size: 18px !important;
+  line-height: 1.45;
 }
 
 .admin-help-text {
-  font-size: 0.95rem;
-  margin-top: 0.3rem;
-  opacity: 0.9;
+  font-size: 18px !important;
+  line-height: 1.45;
 }
 
 .admin-subsection {
-  margin-top: 1.5rem;
+  font-size: 18px !important;
+  line-height: 1.45;
 }
 
 body.admin {
   font-family: var(--font-body);
+  font-size: 22px; /* already comfortably above ~18px */
+  line-height: 1.4;
 }
+
+/* base pill buttons */
 
 .btn-primary,
 .btn-secondary {
-  padding: 0.6rem 1.4rem;
+  padding: 0.75rem 1.7rem;
   border-radius: 50px;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-family: var(--font-body);
   border: none;
   cursor: pointer;
@@ -1375,6 +1408,63 @@ body.admin {
   background: #e74dc1;
 }
 
+/* Pill-style action buttons inside Recent Orders table */
+.admin-table .order-packing-btn,
+.admin-table .order-save-btn {
+  border-radius: 999px;
+  padding: 0.4rem 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: #ffffff;
+  color: #6a4d7a;
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
+.admin-table .order-packing-btn:hover,
+.admin-table .order-save-btn:hover {
+  background: #fbe7f7;
+}
+
+/* Make order table inputs / selects pill-style too */
+.admin-table select,
+.admin-table input[type="text"],
+.admin-table input[type="number"] {
+  border-radius: 999px;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 1.125rem;
+  box-sizing: border-box;
+}
+
+/* Tracking box fills its cell */
+.admin-table .order-tracking-input {
+  width: 100%;
+}
+
+/* Admin-specific override to keep everything pill + light */
+
+body.admin .btn-primary,
+body.admin .btn-secondary {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6a4d7a;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  font-weight: 600;
+}
+
+body.admin .btn-primary:hover,
+body.admin .btn-secondary:hover {
+  background: #fbe7f7;
+  color: #6a4d7a;
+}
+
+/* table */
+
 .table-wrapper {
   overflow-x: auto;
   margin-top: 1rem;
@@ -1383,12 +1473,12 @@ body.admin {
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 1.125rem;
 }
 
 .admin-table th,
 .admin-table td {
-  padding: 0.6rem;
+  padding: 0.7rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -1397,11 +1487,13 @@ body.admin {
   text-align: left;
 }
 
+/* flag pills */
+
 .flag-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.5rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   margin-right: 0.4rem;
@@ -1412,62 +1504,115 @@ body.admin {
   accent-color: var(--brand-main);
 }
 
-#flags-section .flags-header-row {
+/* ===================== PRODUCT FLAGS TABLE ===================== */
+
+/* Keep flags table fully visible inside card */
+#flags-section .products-table-wrapper {
+  width: 100%;
+  overflow-x: visible; /* no horizontal scroll for this table */
+}
+
+/* Hard-reset table display so nothing else (flex/grid) can interfere */
+#flags-section table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;         /* consistent column widths */
+}
+
+#flags-section thead,
+#flags-section tbody {
+  display: table-row-group;
+}
+
+#flags-section tr {
+  display: table-row;
+}
+
+#flags-section th,
+#flags-section td {
+  display: table-cell;
+  padding: 0.5rem 0.7rem;
+  font-size: 1.125rem;
+  vertical-align: middle;
+  white-space: normal;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Header alignment & style */
+#flags-section th {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  text-align: center;
+}
+
+/* Column widths */
+#flags-section th:nth-child(1),
+#flags-section td:nth-child(1) {
+  width: 26%;          /* Name */
+}
+
+#flags-section th:nth-child(2),
+#flags-section td:nth-child(2) {
+  width: 12%;          /* Subcategory */
+}
+
+#flags-section th:nth-child(3),
+#flags-section td:nth-child(3) {
+  width: 8%;           /* Total inventory */
+}
+
+#flags-section th:nth-child(4),
+#flags-section td:nth-child(4),
+#flags-section th:nth-child(5),
+#flags-section td:nth-child(5),
+#flags-section th:nth-child(6),
+#flags-section td:nth-child(6) {
+  width: 12%;          /* Pin / Hide columns */
+}
+
+#flags-section th:nth-child(7),
+#flags-section td:nth-child(7) {
+  width: 18%;          /* Ribbon / Tag */
+}
+
+/* Alignment per column:
+   - Name + Subcategory left
+   - Everything else centered
+*/
+#flags-section th:nth-child(1),
+#flags-section td:nth-child(1),
+#flags-section th:nth-child(2),
+#flags-section td:nth-child(2) {
+  text-align: left;
+}
+
+#flags-section th:nth-child(3),
+#flags-section td:nth-child(3),
+#flags-section th:nth-child(4),
+#flags-section td:nth-child(4),
+#flags-section th:nth-child(5),
+#flags-section td:nth-child(5),
+#flags-section th:nth-child(6),
+#flags-section td:nth-child(6),
+#flags-section th:nth-child(7),
+#flags-section td:nth-child(7) {
+  text-align: center;
+}
+
+/* Pin / hide pill groups centered in their cells */
+#flags-section .flag-pill-group {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-#flags-status {
-  margin-top: 0.35rem;
-}
-
-#flags-toggle-btn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  color: #ffffff;
-  border-radius: 999px;
-  padding: 0.35rem 0.9rem;
-  font-size: 0.85rem;
-}
-
-#flags-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.products-table-wrapper {
-  max-height: 420px;
-  overflow-y: auto;
-  margin-top: 0.75rem;
-  padding-bottom: 0.75rem;
-}
-
-.flags-save-bar,
-.flags-sticky-footer {
-  position: sticky;
-  bottom: 0;
+/* Ribbon select + custom text stacked neatly */
+#flags-section .ribbon-cell {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 0.6rem;
-  margin-top: 0.5rem;
-  background: linear-gradient(
-    to bottom,
-    rgba(106, 77, 122, 0),
-    rgba(106, 77, 122, 0.95)
-  );
-  backdrop-filter: blur(4px);
-}
-
-#save-flags-btn {
-  min-width: 190px;
-}
-
-#flags-section.flags-collapsed .products-table-wrapper,
-#flags-section.flags-collapsed .flags-save-bar,
-#flags-section.flags-collapsed .flags-sticky-footer {
-  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* ===================== MOVE-TO-TOP BUTTON (GLOBAL) ===================== */
@@ -1476,11 +1621,11 @@ body.admin {
   position: fixed;
   right: 1.5rem;
   bottom: 1.5rem;
-  padding: 0.75rem 1.4rem;
+  padding: 0.9rem 1.6rem;
   border-radius: 999px;
   border: none;
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 1.125rem;
   background: var(--brand-main);
   color: #ffffff;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
@@ -1510,13 +1655,13 @@ body.admin {
 /* Search inputs – both pages (SHOP + KIOSK) */
 #shop-search,
 #kiosk-search {
-  padding: 0.45rem 0.9rem;
+  padding: 0.6rem 1rem;
   border-radius: 999px;
   border: 1px solid #ffffff;
   background: #ffffff;
   color: #6a4d7a;
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 1.125rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   outline: none;
 }
@@ -1531,8 +1676,8 @@ body.admin {
 #kiosk-clear-filters {
   border: none;
   border-radius: 999px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.9rem;
+  padding: 0.6rem 1.1rem;
+  font-size: 1.125rem;
   font-family: var(--font-body);
   cursor: pointer;
   background: #ffffff;
@@ -1545,12 +1690,13 @@ body.admin {
 #kiosk-clear-filters:hover {
   background: #fbe7f7;
 }
+
 /* ===== Floating Social Buttons ===== */
 .floating-social {
   position: fixed;
   bottom: 20px;
-  left: 20px;          /* move to left side */
-  right: auto;         /* override any right positioning */
+  left: 20px;
+  right: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1564,8 +1710,8 @@ body.admin {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;          /* keeps the icon nicely round */
-  background: transparent;   /* icon image provides the gradient */
+  overflow: hidden;
+  background: transparent;
   padding: 0;
   border: none;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
@@ -1581,12 +1727,13 @@ body.admin {
   transform: scale(1.12);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
+
 /* ========== SUGAR PLUM ALERT MODAL ========== */
 
 .spc-alert-overlay {
   position: fixed;
   inset: 0;
-  display: none; /* shown via .active / .is-visible */
+  display: none;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.45);
@@ -1628,17 +1775,17 @@ body.admin {
 
 .spc-alert-message {
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 1.125rem;
   line-height: 1.5;
   margin: 0 0 1.25rem;
 }
 
 .spc-alert-button {
   display: inline-block;
-  padding: 0.6rem 1.4rem;
+  padding: 0.75rem 1.6rem;
   border-radius: 999px;
   border: none;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-body);
@@ -1649,4 +1796,206 @@ body.admin {
 
 .spc-alert-button:hover {
   background: #7c1d72;
+}
+
+/* ===== BARCODE TABLE LAYOUT ===== */
+.barcode-variants {
+  overflow-x: auto;           /* allow horizontal scroll on tiny screens */
+}
+
+.barcode-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;        /* keeps columns consistent */
+  font-size: 1.125rem;
+}
+
+.barcode-table th,
+.barcode-table td {
+  padding: 0.35rem 0.45rem;
+  vertical-align: middle;
+}
+
+/* Fixed widths for each column so everything fits on one row */
+.barcode-table th:nth-child(1),
+.barcode-table td:nth-child(1) {
+  width: 3rem;                /* Select checkbox */
+}
+
+.barcode-table th:nth-child(2),
+.barcode-table td:nth-child(2) {
+  width: 26%;                 /* Variant name */
+}
+
+.barcode-table th:nth-child(3),
+.barcode-table td:nth-child(3) {
+  width: 13%;                 /* SKU */
+}
+
+.barcode-table th:nth-child(4),
+.barcode-table td:nth-child(4) {
+  width: 11%;                 /* Color */
+}
+
+.barcode-table th:nth-child(5),
+.barcode-table td:nth-child(5) {
+  width: 11%;                 /* Size */
+}
+
+.barcode-table th:nth-child(6),
+.barcode-table td:nth-child(6) {
+  width: 9%;                  /* In-stock */
+  text-align: center;
+}
+
+.barcode-table th:nth-child(7),
+.barcode-table td:nth-child(7),
+.barcode-table th:nth-child(8),
+.barcode-table td:nth-child(8) {
+  width: 13%;                 /* Counted qty + Labels */
+  text-align: center;
+}
+
+/* Quantity inputs – pill style + narrow */
+.inv-count-input,
+.barcode-qty-input {
+  width: 3.4rem;
+  text-align: center;
+  border-radius: 999px;
+  border: none;
+  padding: 0.35rem 0.5rem;
+  font-size: 1.125rem;
+  box-sizing: border-box;
+}
+
+/* ===== BARCODE / ORDERS SECTION COLLAPSE ===== */
+
+.barcode-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* pill-style expand/collapse buttons used on all admin sections */
+.flags-toggle-btn {
+  border-radius: 999px;
+  padding: 0.45rem 1.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.125rem;
+  background: transparent;
+  color: #ffffff;
+}
+
+.flags-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* hide bodies when collapsed (descriptions remain visible) */
+.flags-collapsed .flags-body {
+  display: none;
+}
+
+.barcode-collapsed .barcode-body {
+  display: none;
+}
+
+.orders-collapsed .orders-body {
+  display: none;
+}
+/* --- FIX ADD TO CART BUTTON --- */
+
+.product-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;       /* extra space so button never clips */
+}
+
+/* Quantity input */
+.product-qty {
+  width: 70px;
+  padding: 0.55rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 1.2rem;           /* matches your 18pt minimum */
+}
+
+/* Add to Cart button (fixed) */
+.add-to-cart {
+  background: var(--brand-main);
+  color: #ffffff;
+  border: none;
+  padding: 0.85rem 1.4rem;     /* MUCH taller padding */
+  border-radius: 999px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  min-width: 10rem;            /* gives space for full text */
+  white-space: nowrap;         /* NEVER wrap text */
+  line-height: 1;              /* prevents tall font from overflowing */
+}
+
+.add-to-cart:hover {
+  opacity: 0.9;
+}
+
+.add-to-cart:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+/* === SHOP CARD ACTIONS: STACK QTY + BUTTON === */
+
+.product-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;   /* stack vertical */
+  align-items: stretch;     /* full card width */
+  gap: 0.6rem;
+  padding-bottom: 1rem;
+}
+
+/* Qty input: full width, comfy padding */
+.product-qty {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 1.125rem;
+  box-sizing: border-box;
+}
+
+/* Add to Cart: slightly smaller pill, full width */
+.add-to-cart {
+  background: var(--brand-main);
+  color: #ffffff;
+  border: none;
+  padding: 0.7rem 1rem;     /* a little shorter than before */
+  border-radius: 999px;
+  font-size: 1.1rem;        /* still big, but not huge */
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;              /* no overflow */
+  min-width: 0;             /* override previous min-width */
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.add-to-cart:hover {
+  opacity: 0.9;
+}
+
+.add-to-cart:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
 }

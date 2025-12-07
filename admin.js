@@ -1,4 +1,4 @@
-// admin.js
+// admin.js 
 // Assumes API_BASE is defined in config.js
 
 // Helper: always send session cookies to the backend for admin routes
@@ -6,9 +6,7 @@ function adminFetch(path, options = {}) {
   const url = `${API_BASE}${path}`;
 
   return fetch(url, {
-    // IMPORTANT: this lets the browser send/receive the session cookie
     credentials: "include",
-    // Allow caller to override/add anything
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -26,13 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await adminFetch("/admin/me");
 
       if (res.ok) {
-        // Optionally read admin info:
         // const data = await res.json();
         // console.log("Admin session:", data);
         return true;
       }
 
-      // Not logged in – go to login page
       window.location.href = "admin-login.html";
       return false;
     } catch (err) {
@@ -66,13 +62,13 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const shippingStatusEl = document.getElementById("shipping-status");
 
-  // --- Orders table ---
+  // --- Orders table + section ---
   const refreshOrdersBtn = document.getElementById("refresh-orders");
   const ordersTbody = document.getElementById("orders-tbody");
+  const ordersSection = document.getElementById("orders-section");
+  const ordersToggleBtn = document.getElementById("orders-toggle-btn");
 
   // --- Archive download ---
-  // (Button text still says "Archive Current Month" in HTML,
-  //  but now it downloads all archived orders as a ZIP.)
   const archiveBtn = document.getElementById("archive-current-month");
   const archiveStatusEl = document.getElementById("archive-status");
 
@@ -88,22 +84,97 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("save-products");
   const flagsSection = document.getElementById("flags-section");
   const flagsToggleBtn = document.getElementById("flags-toggle-btn");
-
+  const flagsSearchInput = document.getElementById("flags-search");
+  const flagsSubcatFilter = document.getElementById("flags-filter-subcat");
+  
   // --- Catalog / Inventory sync buttons ---
   const syncCatalogBtn = document.getElementById("btn-sync-catalog");
   const syncInventoryBtn = document.getElementById("btn-sync-inventory");
   const syncStatusEl = document.getElementById("sync-status");
 
+  // --- Barcode / Inventory Management section + controls ---
+  const barcodeSection = document.getElementById("barcode-section");
+  const barcodeToggleBtn = document.getElementById("barcode-toggle-btn");
+  const barcodeSearchInput = document.getElementById("barcode-search");
+  const barcodeSubcatFilter = document.getElementById("barcode-filter-subcat");
+  const barcodeShowZeroCheckbox = document.getElementById("barcode-show-zero");
+  const barcodeRefreshBtn = document.getElementById("barcode-refresh-btn");
+  const barcodePrintSelectedBtn = document.getElementById(
+    "barcode-print-selected-btn"
+  );
+  const barcodeStatusEl = document.getElementById("barcode-status");
+  const barcodeProductsContainer = document.getElementById(
+    "barcode-products-container"
+  );
+
+  // Delegate clicks inside the barcode products container (expand/collapse, check-all)
+  if (barcodeProductsContainer) {
+    barcodeProductsContainer.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      // Per-product expand/collapse (▾ / ▸)
+      if (target.classList.contains("barcode-toggle")) {
+        const productEl = target.closest(".barcode-product");
+        if (!productEl) return;
+        const variantsEl = productEl.querySelector(".barcode-variants");
+        if (!variantsEl) return;
+
+        const isHidden =
+          variantsEl.style.display === "none" ||
+          getComputedStyle(variantsEl).display === "none";
+
+        variantsEl.style.display = isHidden ? "" : "none";
+        target.textContent = isHidden ? "▾" : "▸";
+        return;
+      }
+
+      // "Check all" for that product
+      if (target.classList.contains("barcode-product-check-all")) {
+        const productEl = target.closest(".barcode-product");
+        if (!productEl) return;
+        const checks = productEl.querySelectorAll(".barcode-variant-check");
+        checks.forEach((cb) => {
+          cb.checked = target.checked;
+        });
+      }
+    });
+  }
+
+  // Output mode checkbox
+  const barcodePrintToLabelCheckbox = document.getElementById(
+    "barcode-print-to-label"
+  );
+  // (kept for compatibility; not used right now)
+  const barcodeDownloadPdfCheckbox = document.getElementById(
+    "barcode-download-pdf"
+  );
+  const barcodeApplyInventoryBtn = document.getElementById(
+    "barcode-apply-inventory-btn"
+  );
+
   // We keep the latest products from /admin/products here
   let adminProducts = [];
 
+  // We keep the latest products from /admin/barcode-products here
+  let barcodeProductsRaw = [];
+
   // =======================
-  //  HELPER: STATUS MESSAGE
+  //  HELPERS
   // =======================
   function showStatus(el, msg, isError = false) {
     if (!el) return;
     el.textContent = msg;
     el.style.color = isError ? "red" : "#000000";
+  }
+
+  function escapeHtml(str) {
+    if (typeof str !== "string") return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   // =======================
@@ -113,7 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!bannerTextInput || !bannerVisibleCheckbox) return;
 
     try {
-      // Public GET: no auth required
       const res = await fetch(`${API_BASE}/admin/config`);
 
       if (!res.ok) {
@@ -173,7 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
       bannerVisible: bannerVisibleCheckbox.checked,
     };
 
-    // Include popup fields if those inputs exist
     if (popupEnabledCheckbox) {
       payload.popupEnabled = popupEnabledCheckbox.checked;
     }
@@ -184,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
       payload.popupCustomText = popupCustomTextInput.value || "";
     }
 
-    // Include shipping settings if present
     if (shippingFlatRateInput) {
       const v = parseFloat(shippingFlatRateInput.value);
       payload.shippingFlatRate = isNaN(v) ? 0 : v;
@@ -343,7 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Save handler for status + tracking + packing slip
   if (ordersTbody) {
     ordersTbody.addEventListener("click", async (event) => {
       const target = event.target;
@@ -354,15 +421,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const orderId = row.getAttribute("data-order-id");
       if (!orderId) return;
 
-      // --- Packing List PDF button ---
       if (target.classList.contains("order-packing-btn")) {
-        // Open packing slip PDF in a new tab for download/print
         const url = `${API_BASE}/admin/orders/${orderId}/packing-slip`;
         window.open(url, "_blank");
         return;
       }
 
-      // --- Save button (status + tracking) ---
       if (!target.classList.contains("order-save-btn")) return;
 
       const statusSelect = row.querySelector(".order-status-input");
@@ -400,7 +464,6 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Order updated:", data);
         target.textContent = "Saved";
 
-        // If the order was archived, reload the list so it disappears
         if (status === "ARCHIVED") {
           await loadOrders();
         }
@@ -421,7 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
-  //  ARCHIVE DOWNLOAD (ZIP OF ARCHIVED ORDERS)
+  //  ARCHIVE DOWNLOAD
   // =======================
   function downloadOrderArchive() {
     if (archiveStatusEl) {
@@ -432,15 +495,12 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    // Open in a new tab/window so you stay on the admin page,
-    // but the browser can handle the ZIP download.
     window.open(`${API_BASE}/admin/orders/archive-download`, "_blank");
   }
 
   // =======================
   //  PRODUCTS / FLAGS UI
   // =======================
-
   function renderProductsTable(products) {
     if (!flagsTbody) return;
 
@@ -463,66 +523,103 @@ document.addEventListener("DOMContentLoaded", () => {
         const ribbonText = flags.ribbonCustomText || "";
 
         return `
-          <tr data-product-id="${p.id}">
-            <td class="prod-name">${p.name}</td>
-            <td class="prod-subcat">${p.subcategory || "-"}</td>
-            <td class="prod-inv">${totalInv}</td>
+  <tr data-product-id="${p.id}">
+    <td class="prod-name">${p.name}</td>
+    <td class="prod-subcat">${p.subcategory || "-"}</td>
+    <td class="prod-inv">${totalInv}</td>
 
-            <!-- Flags: only Pin to top now -->
-            <td class="prod-flags">
-              <label class="flag-pill">
-                <input type="checkbox" class="flag-pinToTop" ${
-                  flags.pinToTop ? "checked" : ""
-                } />
-                Pin to top
-              </label>
-            </td>
+    <!-- Pin to top -->
+    <td class="prod-flags">
+      <label class="flag-pill">
+        <input
+          type="checkbox"
+          class="flag-pinToTop"
+          ${flags.pinToTop ? "checked" : ""}
+        />
+        Pin to top
+      </label>
+    </td>
 
-            <!-- Visibility -->
-            <td class="prod-visibility">
-              <label class="flag-pill">
-                <input type="checkbox" class="flag-hideOnline" ${
-                  flags.hideOnline ? "checked" : ""
-                } />
-                Hide Online
-              </label>
-              <label class="flag-pill">
-                <input type="checkbox" class="flag-hideKiosk" ${
-                  flags.hideKiosk ? "checked" : ""
-                } />
-                Hide Kiosk
-              </label>
-            </td>
+    <!-- Hide shop / online (its own column) -->
+    <td class="prod-hide-online">
+      <label class="flag-pill">
+        <input
+          type="checkbox"
+          class="flag-hideOnline"
+          ${flags.hideOnline ? "checked" : ""}
+        />
+        Hide Online
+      </label>
+    </td>
 
-            <!-- Ribbon dropdown + custom text -->
-            <td class="prod-ribbon">
-              <select class="flag-ribbonType">
-                <option value="none" ${
-                  ribbonType === "none" ? "selected" : ""
-                }>No ribbon</option>
-                <option value="new" ${
-                  ribbonType === "new" ? "selected" : ""
-                }>New</option>
-                <option value="featured" ${
-                  ribbonType === "featured" ? "selected" : ""
-                }>Featured</option>
-                <option value="custom" ${
-                  ribbonType === "custom" ? "selected" : ""
-                }>Custom</option>
-              </select>
-              <input
-                type="text"
-                class="flag-ribbonCustomText"
-                placeholder="Custom ribbon text"
-                value="${ribbonText.replace(/"/g, "&quot;")}"
-              />
-            </td>
-          </tr>
-        `;
+    <!-- Hide kiosk (separate column) -->
+    <td class="prod-hide-kiosk">
+      <label class="flag-pill">
+        <input
+          type="checkbox"
+          class="flag-hideKiosk"
+          ${flags.hideKiosk ? "checked" : ""}
+        />
+        Hide Kiosk
+      </label>
+    </td>
+
+    <!-- Ribbon / Tag -->
+    <td class="prod-ribbon">
+      <select class="flag-ribbonType">
+        <option value="none" ${
+          ribbonType === "none" ? "selected" : ""
+        }>No ribbon</option>
+        <option value="new" ${
+          ribbonType === "new" ? "selected" : ""
+        }>New</option>
+        <option value="featured" ${
+          ribbonType === "featured" ? "selected" : ""
+        }>Featured</option>
+        <option value="custom" ${
+          ribbonType === "custom" ? "selected" : ""
+        }>Custom</option>
+      </select>
+      <input
+        type="text"
+        class="flag-ribbonCustomText"
+        placeholder="Custom ribbon text"
+        value="${ribbonText.replace(/"/g, "&quot;")}"
+      />
+    </td>
+  </tr>
+`;
       })
       .join("");
 
     flagsTbody.innerHTML = rowsHtml;
+  }
+
+  // Apply search + subcategory filters for Product Flags and re-render
+  function applyFlagsFiltersAndRender() {
+    if (!flagsTbody) return;
+
+    const query = (flagsSearchInput?.value || "").trim().toLowerCase();
+    const subcatFilter = (flagsSubcatFilter?.value || "")
+      .trim()
+      .toLowerCase();
+
+    const filtered = (adminProducts || []).filter((p) => {
+      if (!p) return false;
+
+      const name = (p.name || "").toLowerCase();
+      const subcat = (p.subcategory || "").toLowerCase();
+
+      const matchesSearch =
+        !query || name.includes(query) || subcat.includes(query);
+
+      const matchesSubcat =
+        !subcatFilter || (subcat && subcat === subcatFilter);
+
+      return matchesSearch && matchesSubcat;
+    });
+
+    renderProductsTable(filtered);
   }
 
   async function loadAdminProducts() {
@@ -561,7 +658,32 @@ document.addEventListener("DOMContentLoaded", () => {
       adminProducts = Array.isArray(data.products) ? data.products : [];
       console.log("Loaded admin products:", adminProducts);
 
-      renderProductsTable(adminProducts);
+      // Build subcategory dropdown options for flags section
+      if (flagsSubcatFilter) {
+        const subcats = new Set();
+        adminProducts.forEach((p) => {
+          if (p.subcategory) subcats.add(p.subcategory);
+        });
+
+        const currentValue = flagsSubcatFilter.value;
+        flagsSubcatFilter.innerHTML =
+          '<option value="">All subcategories</option>' +
+          Array.from(subcats)
+            .sort()
+            .map(
+              (s) =>
+                `<option value="${s}">${s}</option>`
+            )
+            .join("");
+
+        // Try to keep previous selection if still valid
+        if (currentValue) {
+          flagsSubcatFilter.value = currentValue;
+        }
+      }
+
+      // Render using the filters
+      applyFlagsFiltersAndRender();
       showStatus(flagsStatusEl, "Products loaded.", false);
     } catch (err) {
       console.error("Error loading admin products:", err);
@@ -633,6 +755,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
   // =======================
   //  CATALOG / INVENTORY SYNC
   // =======================
@@ -673,10 +796,372 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =======================
+  //  BARCODE LABELS / INVENTORY
+  // =======================
+  function renderBarcodeProducts(products) {
+    if (!barcodeProductsContainer) return;
+
+    if (!Array.isArray(products) || products.length === 0) {
+      barcodeProductsContainer.innerHTML =
+        "<p>No products found for the current filters.</p>";
+      return;
+    }
+
+    const html = products
+      .map((p) => {
+        const safeName = escapeHtml(p.name || "Unnamed product");
+        const safeSubcat = escapeHtml(p.subcategory || "");
+        const variations = Array.isArray(p.variations) ? p.variations : [];
+
+        if (!variations.length) {
+          return "";
+        }
+
+        const varsHtml = variations
+          .map((v) => {
+            const sku = v.sku || "";
+            const safeSku = escapeHtml(sku);
+            const vName = v.name || "";
+            const safeVName = escapeHtml(vName);
+            const color = v.color || "";
+            const size = v.size || "";
+            const safeColor = escapeHtml(color);
+            const safeSize = escapeHtml(size);
+            const qty =
+              typeof v.quantity === "number" && !Number.isNaN(v.quantity)
+                ? v.quantity
+                : 0;
+
+            return `
+            <tr
+              class="barcode-variant-row"
+              data-sku="${safeSku}"
+              data-product-name="${safeName}"
+            >
+              <td>
+                <input type="checkbox" class="barcode-variant-check" />
+              </td>
+              <td class="bc-variant-name">${safeVName}</td>
+              <td class="bc-variant-sku">${safeSku || "-"}</td>
+              <td class="bc-variant-color">${safeColor || "-"}</td>
+              <td class="bc-variant-size">${safeSize || "-"}</td>
+              <td class="bc-variant-stock">${qty}</td>
+              <!-- Counted qty input -->
+              <td>
+                <input
+                  type="number"
+                  class="inv-count-input"
+                  min="0"
+                  step="1"
+                  style="width: 4rem;"
+                />
+              </td>
+              <!-- Labels to print -->
+              <td>
+                <input
+                  type="number"
+                  class="barcode-qty-input"
+                  min="1"
+                  step="1"
+                  value="1"
+                  style="width: 4rem;"
+                />
+              </td>
+            </tr>
+          `;
+          })
+          .join("");
+
+        if (!varsHtml) return "";
+
+        return `
+        <div class="barcode-product" data-product-id="${p.id}">
+          <div class="barcode-product-header">
+            <button type="button" class="barcode-toggle" aria-label="Toggle variants">
+              ▾
+            </button>
+            <div class="barcode-product-title">
+              <div class="barcode-product-name">${safeName}</div>
+              <div class="barcode-product-subcat">${
+                safeSubcat ? `Subcategory: ${safeSubcat}` : "&nbsp;"
+              }</div>
+            </div>
+            <div class="barcode-product-actions">
+              <label class="admin-checkbox">
+                <input type="checkbox" class="barcode-product-check-all" />
+                <span>Check all</span>
+              </label>
+            </div>
+          </div>
+          <div class="barcode-variants">
+            <table class="admin-table barcode-table">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th>Variant</th>
+                  <th>SKU</th>
+                  <th>Color</th>
+                  <th>Size</th>
+                  <th>In-stock</th>
+                  <th>Counted qty</th>
+                  <th>Labels to print</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${varsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      })
+      .join("");
+
+    barcodeProductsContainer.innerHTML = html || "<p>No products found.</p>";
+  }
+
+  function applyBarcodeFiltersAndRender() {
+    if (!barcodeProductsContainer) return;
+
+    const query = (barcodeSearchInput?.value || "").trim().toLowerCase();
+    const showZero = barcodeShowZeroCheckbox
+      ? barcodeShowZeroCheckbox.checked
+      : true;
+    const subcatFilter = (barcodeSubcatFilter?.value || "")
+      .trim()
+      .toLowerCase();
+
+    const filteredProducts = (barcodeProductsRaw || [])
+      .map((p) => {
+        const baseMatchesName =
+          !query ||
+          (p.name && p.name.toLowerCase().includes(query));
+        const baseMatchesSubcat =
+          !query ||
+          (p.subcategory && p.subcategory.toLowerCase().includes(query));
+
+        const baseMatchesSubcatFilter =
+          !subcatFilter ||
+          (p.subcategory && p.subcategory.toLowerCase() === subcatFilter);
+
+        const variations = Array.isArray(p.variations) ? p.variations : [];
+
+        const filteredVars = variations.filter((v) => {
+          const vName = (v.name || "").toLowerCase();
+          const vSku = (v.sku || "").toLowerCase();
+          const vColor = (v.color || "").toLowerCase();
+          const vSize = (v.size || "").toLowerCase();
+
+          const searchMatches =
+            (!query ||
+              baseMatchesName ||
+              baseMatchesSubcat ||
+              vName.includes(query) ||
+              vSku.includes(query) ||
+              vColor.includes(query) ||
+              vSize.includes(query)) &&
+            baseMatchesSubcatFilter;
+
+          if (!searchMatches) return false;
+
+          if (!showZero) {
+            const qty =
+              typeof v.quantity === "number" && !Number.isNaN(v.quantity)
+                ? v.quantity
+                : 0;
+            if (qty <= 0) return false;
+          }
+
+          return true;
+        });
+
+        if (!filteredVars.length) return null;
+
+        return {
+          ...p,
+          variations: filteredVars,
+        };
+      })
+      .filter(Boolean);
+
+    renderBarcodeProducts(filteredProducts);
+  }
+
+  async function loadBarcodeProducts() {
+    if (!barcodeProductsContainer) return;
+
+    barcodeProductsContainer.innerHTML = "<p>Loading products…</p>";
+    showStatus(barcodeStatusEl, "Loading barcode products...", false);
+
+    try {
+      const res = await adminFetch("/admin/barcode-products");
+
+      if (res.status === 401) {
+        showStatus(
+          barcodeStatusEl,
+          "Not authorized. Please log in again.",
+          true
+        );
+        barcodeProductsContainer.innerHTML =
+          "<p>Not authorized. Please log in again.</p>";
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to load barcode products");
+      }
+
+      const data = await res.json();
+      barcodeProductsRaw = Array.isArray(data.products)
+        ? data.products
+        : [];
+      console.log("Loaded barcode products:", barcodeProductsRaw);
+
+      // Build subcategory dropdown options
+      if (barcodeSubcatFilter) {
+        const subcats = new Set();
+        barcodeProductsRaw.forEach((p) => {
+          if (p.subcategory) {
+            subcats.add(p.subcategory);
+          }
+        });
+        const currentValue = barcodeSubcatFilter.value;
+        barcodeSubcatFilter.innerHTML =
+          '<option value="">All subcategories</option>' +
+          Array.from(subcats)
+            .sort()
+            .map(
+              (s) =>
+                `<option value="${escapeHtml(s)}"${
+                  currentValue === s ? " selected" : ""
+                }>${escapeHtml(s)}</option>`
+            )
+            .join("");
+      }
+
+      applyBarcodeFiltersAndRender();
+      showStatus(barcodeStatusEl, "Barcode products loaded.", false);
+    } catch (err) {
+      console.error("Error loading barcode products:", err);
+      barcodeProductsContainer.innerHTML =
+        "<p>Error loading barcode products.</p>";
+      showStatus(barcodeStatusEl, "Error loading barcode products.", true);
+    }
+  }
+
+  async function handleBarcodePrintSelected() {
+    if (!barcodeProductsContainer) return;
+
+    const checked = barcodeProductsContainer.querySelectorAll(
+      ".barcode-variant-row .barcode-variant-check:checked"
+    );
+
+    if (!checked.length) {
+      showStatus(
+        barcodeStatusEl,
+        "No variants are checked. Select at least one row.",
+        true
+      );
+      return;
+    }
+
+    const items = [];
+
+    checked.forEach((cb) => {
+      const row = cb.closest(".barcode-variant-row");
+      if (!row) return;
+
+      const sku = row.getAttribute("data-sku") || "";
+      const productName = row.getAttribute("data-product-name") || "";
+
+      const colorEl = row.querySelector(".bc-variant-color");
+      const sizeEl = row.querySelector(".bc-variant-size");
+      const nameEl = row.querySelector(".bc-variant-name");
+
+      const variantName = nameEl ? nameEl.textContent.trim() : "";
+      const color = colorEl ? colorEl.textContent.trim() : "";
+      const size = sizeEl ? sizeEl.textContent.trim() : "";
+
+      const qtyInput = row.querySelector(".barcode-qty-input");
+      let qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+      if (!Number.isFinite(qty) || qty <= 0) qty = 1;
+
+      const labelParts = [];
+      if (productName) labelParts.push(productName);
+      const detailParts = [variantName, color, size].filter(Boolean);
+      if (detailParts.length) {
+        labelParts.push(detailParts.join(" "));
+      }
+      const labelText = labelParts.join(" - ").trim() || sku || "Label";
+
+      items.push({
+        sku: sku || null,
+        labelText,
+        quantity: qty,
+      });
+    });
+
+    if (!items.length) {
+      showStatus(
+        barcodeStatusEl,
+        "No valid items collected for barcode generation.",
+        true
+      );
+      return;
+    }
+
+    // Only gate on the "Print to label printer" checkbox now.
+    if (barcodePrintToLabelCheckbox && !barcodePrintToLabelCheckbox.checked) {
+      showStatus(
+        barcodeStatusEl,
+        "Check 'Print to label printer' before printing labels.",
+        true
+      );
+      return;
+    }
+
+    showStatus(barcodeStatusEl, "Sending labels to printer…", false);
+
+    try {
+      const res = await adminFetch("/admin/generate-barcodes", {
+        method: "POST",
+        body: JSON.stringify({ items, mode: "print" }), // tells backend to print to COM3
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data || data.error) {
+        console.error("Barcode generation/print failed:", data);
+        showStatus(
+          barcodeStatusEl,
+          data && data.error
+            ? `Failed to print labels: ${data.error}`
+            : "Failed to print labels.",
+          true
+        );
+        return;
+      }
+
+      console.log("Barcode print result:", data);
+      showStatus(
+        barcodeStatusEl,
+        data.message || "Labels processed and sent to label printer.",
+        false
+      );
+    } catch (err) {
+      console.error("Error generating barcode labels:", err);
+      showStatus(
+        barcodeStatusEl,
+        "Error generating barcode labels (network or server error).",
+        true
+      );
+    }
+  }
+
+  // =======================
   //  RETURN TO TOP BUTTON
   // =======================
   function initScrollToTopButton() {
-    // Avoid duplicates
     if (document.getElementById("scrollToTopBtn")) return;
 
     const btn = document.createElement("button");
@@ -684,7 +1169,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.type = "button";
     btn.textContent = "↑ Top";
 
-    // Basic inline styles; you can override in CSS if you want
     Object.assign(btn.style, {
       position: "fixed",
       right: "1.25rem",
@@ -740,12 +1224,39 @@ document.addEventListener("DOMContentLoaded", () => {
     saveFlagsBtn.addEventListener("click", saveAdminProducts);
   }
 
+  // 🔍 Product Flags filters (search + subcategory)
+  if (flagsSearchInput) {
+    flagsSearchInput.addEventListener("input", applyFlagsFiltersAndRender);
+  }
+
+  if (flagsSubcatFilter) {
+    flagsSubcatFilter.addEventListener("change", applyFlagsFiltersAndRender);
+  }
+
+  // Products / Flags section collapse (collapsed by default via CSS class)
   if (flagsToggleBtn && flagsSection) {
+    // Start collapsed on load
+    flagsSection.classList.add("flags-collapsed");
+    flagsToggleBtn.textContent = "Expand Products";
+
     flagsToggleBtn.addEventListener("click", () => {
       const collapsed = flagsSection.classList.toggle("flags-collapsed");
       flagsToggleBtn.textContent = collapsed
         ? "Expand Products"
         : "Collapse Products";
+    });
+  }
+
+  // Orders section collapse (collapsed by default)
+  if (ordersToggleBtn && ordersSection) {
+    ordersSection.classList.add("orders-collapsed");
+    ordersToggleBtn.textContent = "Expand Orders";
+
+    ordersToggleBtn.addEventListener("click", () => {
+      const collapsed = ordersSection.classList.toggle("orders-collapsed");
+      ordersToggleBtn.textContent = collapsed
+        ? "Expand Orders"
+        : "Collapse Orders";
     });
   }
 
@@ -761,6 +1272,138 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // Barcode filters / actions
+  if (barcodeSearchInput) {
+    barcodeSearchInput.addEventListener("input", applyBarcodeFiltersAndRender);
+  }
+
+  if (barcodeSubcatFilter) {
+    barcodeSubcatFilter.addEventListener(
+      "change",
+      applyBarcodeFiltersAndRender
+    );
+  }
+
+  if (barcodeShowZeroCheckbox) {
+    barcodeShowZeroCheckbox.addEventListener(
+      "change",
+      applyBarcodeFiltersAndRender
+    );
+  }
+
+  if (barcodeRefreshBtn) {
+    barcodeRefreshBtn.addEventListener("click", loadBarcodeProducts);
+  }
+
+  if (barcodePrintSelectedBtn) {
+    barcodePrintSelectedBtn.addEventListener(
+      "click",
+      handleBarcodePrintSelected
+    );
+  }
+
+  // Send delta quantities (±) to Square
+  if (barcodeApplyInventoryBtn) {
+    barcodeApplyInventoryBtn.addEventListener("click", () => {
+      if (!barcodeProductsContainer) return;
+
+      const rows = barcodeProductsContainer.querySelectorAll(
+        ".barcode-variant-row"
+      );
+
+      const updates = [];
+
+      rows.forEach((row) => {
+        const sku = row.getAttribute("data-sku");
+        const input = row.querySelector(".inv-count-input");
+        if (!sku || !input) return;
+
+        const raw = input.value.trim();
+        if (raw === "") return; // leave blank to skip
+
+        // Treat this as a DELTA (±), not an absolute count
+        const delta = Number(raw);
+
+        // Allow positive or negative, skip only zero / invalid
+        if (!Number.isFinite(delta) || delta === 0) return;
+
+        // Backend expects "newQty" but we are using it as delta
+        updates.push({ sku, newQty: delta });
+      });
+
+      if (!updates.length) {
+        showStatus(
+          barcodeStatusEl,
+          "No quantity changes entered (use + or - numbers; leave blank to skip rows).",
+          true
+        );
+        return;
+      }
+
+      showStatus(
+        barcodeStatusEl,
+        "Sending inventory changes to Square...",
+        false
+      );
+
+      fetch(`${API_BASE}/admin/apply-inventory-count`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "set_absolute", // kept for compatibility; backend ignores this now
+          updates,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            showStatus(
+              barcodeStatusEl,
+              "Error updating Square inventory: " + data.error,
+              true
+            );
+            return;
+          }
+
+          showStatus(
+            barcodeStatusEl,
+            "Inventory updated in Square successfully.",
+            false
+          );
+
+          // Optional: clear inputs after success
+          rows.forEach((row) => {
+            const input = row.querySelector(".inv-count-input");
+            if (input) input.value = "";
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          showStatus(
+            barcodeStatusEl,
+            "Request failed while updating inventory.",
+            true
+          );
+        });
+    });
+  }
+
+  // Barcode section collapse (collapsed by default via CSS class)
+  if (barcodeToggleBtn && barcodeSection) {
+    // Start collapsed on load
+    barcodeSection.classList.add("barcode-collapsed");
+    barcodeToggleBtn.textContent = "Expand Inventory";
+
+    barcodeToggleBtn.addEventListener("click", () => {
+      const collapsed = barcodeSection.classList.toggle("barcode-collapsed");
+      barcodeToggleBtn.textContent = collapsed
+        ? "Expand Inventory"
+        : "Collapse Inventory";
+    });
+  }
+
+
   // =======================
   //  INITIAL LOAD
   // =======================
@@ -771,6 +1414,9 @@ document.addEventListener("DOMContentLoaded", () => {
     loadBannerConfig();
     loadOrders();
     loadAdminProducts();
+    if (barcodeProductsContainer) {
+      loadBarcodeProducts();
+    }
     initScrollToTopButton();
   })();
 });

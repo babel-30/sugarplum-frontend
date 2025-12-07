@@ -344,6 +344,8 @@ async function handleCheckoutClick() {
       color: item.color,
       size: item.size,
       printSide: item.printSide || null, // Front / Back / Front & Back
+      // ✅ NEW: send sku through to backend so it ends up in items_json
+      sku: item.sku || null,
       price: Math.round(item.price * 100), // cents
       quantity: item.qty || 1,
       squareVariationId: item.squareVariationId || item.catalogObjectId || null,
@@ -492,6 +494,7 @@ async function handleCheckoutClick() {
     );
   }
 }
+
 
 // ========== IMAGE MODAL (SHARED) ==========
 const imageModal = document.getElementById("image-modal");
@@ -866,10 +869,11 @@ function addToCart(product, color, size, qty, printSide = null) {
     return;
   }
 
-  // Look up the matching variation so we can use its price and ID
+  // Look up the matching variation so we can use its price, ID, and SKU
   const variation = findSquareVariation(product, color, size);
   let priceDollars = product.price; // fallback
   let variationId = null;
+  let sku = null; // ✅ NEW
 
   if (variation) {
     if (typeof variation.price === "number") {
@@ -882,6 +886,7 @@ function addToCart(product, color, size, qty, printSide = null) {
     }
 
     variationId = variation.catalogObjectId || variation.id || null;
+    sku = variation.sku || null; // ✅ NEW: capture SKU from Square variation
   }
 
   if (existing) {
@@ -890,6 +895,7 @@ function addToCart(product, color, size, qty, printSide = null) {
     existing.price = priceDollars;
     existing.squareVariationId = variationId;
     existing.catalogObjectId = variationId;
+    existing.sku = sku; // ✅ keep sku in sync too
   } else {
     cart.push({
       id: product.id,
@@ -903,12 +909,15 @@ function addToCart(product, color, size, qty, printSide = null) {
       image: product.image || null,
       squareVariationId: variationId,
       catalogObjectId: variationId,
+      // ✅ NEW: store SKU on the cart line
+      sku,
     });
   }
 
   saveCartToStorage();
   updateCartDisplay();
 }
+
 
 // ========== TRANSFORM BACKEND PRODUCTS ==========
 function transformSquareProducts(squareItems) {
