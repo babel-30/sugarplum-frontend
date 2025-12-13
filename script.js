@@ -1,4 +1,4 @@
-// ========== CONFIG ==========  
+// ========== CONFIG ==========
 
 // Shipping config defaults (front-end; overwritten by admin settings on cart page)
 let SHIPPING_FLAT_RATE = 6.95; // example USPS-ish flat rate for ~3 shirts
@@ -10,6 +10,31 @@ const SALES_TAX_RATE = 0.07; // 7% sales tax estimate
 
 // Global products array (filled from /products)
 let products = [];
+
+// ===== PRINT SIDE NORMALIZATION =====
+function normalizePrintSide(side) {
+  if (!side) return null;
+  const s = String(side).trim().toLowerCase();
+
+  if (s === "front" || s.includes("front only")) return "Front";
+  if (s === "back" || s.includes("back only")) return "Back";
+
+  // include variations like: "Front & Back", "Front and Back", "Front/Back"
+  if (
+    s.includes("front & back") ||
+    s.includes("front and back") ||
+    s.includes("front/back") ||
+    s.includes("front + back") ||
+    s.includes("front+back")
+  ) {
+    return "Front & Back";
+  }
+
+  // If it has both words, treat as Front & Back
+  if (s.includes("front") && s.includes("back")) return "Front & Back";
+
+  return side;
+}
 
 // ===== STOCK HELPERS =====
 
@@ -119,7 +144,6 @@ const shopColorFilterSelect = document.getElementById("shop-color-filter");
 const shopClearFiltersBtn = document.getElementById("shop-clear-filters");
 
 // ========== MASTER SIZE & COLOR LISTS (CAPABILITY) ==========
-// Expanded to include extended sizes and common aliases for 2X, 3X, 4X, 5X
 const MASTER_SIZES = [
   "NB",
   "0-3M",
@@ -177,8 +201,6 @@ const MASTER_COLORS = [
 ];
 
 // ========== CART PERSISTENCE ==========
-// NOTE: your backend keeps amounts authoritative; this is a visual estimate.
-
 const CART_KEY = "spc_cart_v1";
 
 function loadCartFromStorage() {
@@ -199,8 +221,6 @@ function saveCartToStorage() {
 }
 
 // ========== SUGAR PLUM ALERT MODAL ==========
-// (Fixed: lazy-init after DOM is ready so popups actually work everywhere)
-
 let spcAlertOverlay = null;
 let spcAlertTitleEl = null;
 let spcAlertMsgEl = null;
@@ -209,8 +229,6 @@ let spcAlertBtnEl = null;
 function initSpcAlertModal() {
   spcAlertOverlay = document.getElementById("spc-alert-overlay");
   if (!spcAlertOverlay) {
-    // Overlay not present on this page; showSpcAlert will NO LONGER use window.alert.
-    // It will just log to console instead so we don’t get annoying browser popups.
     return;
   }
 
@@ -232,8 +250,6 @@ function initSpcAlertModal() {
 }
 
 function showSpcAlert(message, type = "info") {
-  // If the fancy overlay isn’t available on this page, do NOT use native alert.
-  // Just log to the console so we don't slam the user with popups.
   if (!spcAlertOverlay || !spcAlertMsgEl || !spcAlertTitleEl) {
     console.warn("Sugar Plum alert:", type, message);
     return;
@@ -256,7 +272,6 @@ function showSpcAlert(message, type = "info") {
 
   spcAlertOverlay.classList.add("active");
 }
-
 
 // Global cart state
 let cart = loadCartFromStorage();
@@ -299,14 +314,12 @@ function computeShipping(subtotal) {
 }
 
 // ========== CHECKOUT HANDLER ==========
-// NOTE: backend still recomputes true fee/tax; this is just visual guidance.
 async function handleCheckoutClick() {
   if (!cart || !cart.length) {
     showSpcAlert("Your cart is empty.", "warning");
     return;
   }
 
-  // Basic customer info (name + email required, address optional for now)
   const customer = {
     name: checkoutNameInput ? checkoutNameInput.value.trim() : "",
     email: checkoutEmailInput ? checkoutEmailInput.value.trim() : "",
@@ -327,7 +340,6 @@ async function handleCheckoutClick() {
     return;
   }
 
-  // Recompute totals here to keep in sync with backend (shipping estimate only)
   const merchandiseTotal = cart.reduce(
     (sum, item) => sum + item.qty * item.price,
     0
@@ -336,17 +348,15 @@ async function handleCheckoutClick() {
   const shippingTotalCents = Math.round(shippingAmount * 100);
 
   try {
-    // Convert cart into what the backend expects: price in CENTS
     const payloadCart = cart.map((item) => ({
       id: item.id,
       name: item.name,
       type: item.type,
       color: item.color,
       size: item.size,
-      printSide: item.printSide || null, // Front / Back / Front & Back
-      // ✅ NEW: send sku through to backend so it ends up in items_json
+      printSide: item.printSide || null,
       sku: item.sku || null,
-      price: Math.round(item.price * 100), // cents
+      price: Math.round(item.price * 100),
       quantity: item.qty || 1,
       squareVariationId: item.squareVariationId || item.catalogObjectId || null,
       catalogObjectId: item.catalogObjectId || item.squareVariationId || null,
@@ -355,7 +365,7 @@ async function handleCheckoutClick() {
     const body = {
       cart: payloadCart,
       customer,
-      shippingTotalCents, // backend currently ignores this, but harmless
+      shippingTotalCents,
     };
 
     console.log("FRONTEND raw cart:", cart);
@@ -367,7 +377,6 @@ async function handleCheckoutClick() {
       body: JSON.stringify(body),
     });
 
-    // ===== SPECIAL CASE: inventory conflict (409 OUT_OF_STOCK) =====
     if (res.status === 409) {
       let errJson = {};
       try {
@@ -383,7 +392,6 @@ async function handleCheckoutClick() {
       ) {
         const conflicts = errJson.conflicts;
 
-        // Adjust the local cart based on what the server says is left
         conflicts.forEach((conf) => {
           const pid = conf.productId || null;
           const confColor = (conf.color || "").toLowerCase();
@@ -398,7 +406,7 @@ async function handleCheckoutClick() {
 
             const sameProduct =
               (!!pid && item.id === pid) ||
-              (!pid && item.name === conf.name); // loose fallback by name
+              (!pid && item.name === conf.name);
 
             if (
               sameProduct &&
@@ -406,28 +414,23 @@ async function handleCheckoutClick() {
               itemSize === confSize
             ) {
               if (available <= 0) {
-                // Completely gone → remove from cart
                 cart.splice(i, 1);
               } else if (available < item.qty) {
-                // Only partially available → clamp qty
                 item.qty = available;
               }
             }
           }
         });
 
-        // Persist + refresh UI
         saveCartToStorage();
         updateCartDisplay();
 
-        // Optional: refresh products so stock/status reflect new reality
         try {
           await loadProducts();
         } catch (e) {
           console.warn("Failed to reload products after conflict:", e);
         }
 
-        // Build a friendly message for the customer
         const lines = conflicts.map((c) => {
           const name = c.name || "Item";
           const color = c.color ? ` – Color: ${c.color}` : "";
@@ -453,13 +456,10 @@ async function handleCheckoutClick() {
           lines.join("\n");
 
         showSpcAlert(fullMessage, "warning");
-        return; // stop here; do NOT redirect to Square
+        return;
       }
-
-      // If we got a 409 but without the structured payload, fall through to generic error
     }
 
-    // ===== Generic non-OK error handling =====
     if (!res.ok) {
       console.error("Checkout error status:", res.status);
       let err = {};
@@ -476,7 +476,6 @@ async function handleCheckoutClick() {
       return;
     }
 
-    // ===== Success: go to Square checkout =====
     const data = await res.json();
 
     if (!data.checkoutUrl) {
@@ -484,7 +483,6 @@ async function handleCheckoutClick() {
       return;
     }
 
-    // Send the customer to Square's checkout page
     window.location.href = data.checkoutUrl;
   } catch (error) {
     console.error("Checkout failed:", error);
@@ -494,7 +492,6 @@ async function handleCheckoutClick() {
     );
   }
 }
-
 
 // ========== IMAGE MODAL (SHARED) ==========
 const imageModal = document.getElementById("image-modal");
@@ -539,30 +536,6 @@ function initImageModalHandlers() {
 
 // ========== CART RENDERING & HELPERS ==========
 
-// Helper: find the full Square variation object for a given product/color/size
-function findSquareVariation(product, color, size) {
-  if (!Array.isArray(product.squareVariations)) return null;
-
-  const colorLower = (color || "").toLowerCase();
-  const sizeLower = (size || "").toLowerCase();
-
-  const match = product.squareVariations.find((v) => {
-    const vColor = (v.color || "").toLowerCase();
-    const vSize = (v.size || "").toLowerCase();
-    return vColor === colorLower && vSize === sizeLower;
-  });
-
-  return match || null;
-}
-
-// Helper: find Square variation ID for a given product/color/size
-// (now prefers catalogObjectId, falls back to id)
-function findSquareVariationId(product, color, size) {
-  const match = findSquareVariation(product, color, size);
-  if (!match) return null;
-  return match.catalogObjectId || match.id || null;
-}
-
 // Helper: pull qty out of a variation from any of several possible fields
 function extractQtyFromVariation(v) {
   const fields = [
@@ -597,11 +570,61 @@ function inferPrintLocationFromName(name) {
   if (lower.includes("front & back") || lower.includes("front and back")) {
     return "Front & Back";
   }
-  // Check "front" before "back" so we don't mis-read "Front & Back"
   if (lower.includes("front")) return "Front";
   if (lower.includes("back")) return "Back";
 
   return null;
+}
+
+// === UPDATED: variation lookup now includes printSide ===
+function findSquareVariation(product, color, size, printSide = null) {
+  if (!Array.isArray(product.squareVariations)) return null;
+
+  const colorLower = (color || "").toLowerCase();
+  const sizeLower = (size || "").toLowerCase();
+  const desiredPrint = normalizePrintSide(printSide);
+
+  // First pass: strict match on color+size+printSide (if provided)
+  if (desiredPrint) {
+    const strict = product.squareVariations.find((v) => {
+      const vColor = (v.color || "").toLowerCase();
+      const vSize = (v.size || "").toLowerCase();
+      const vPrint = normalizePrintSide(
+        v.printLocation || inferPrintLocationFromName(v.name)
+      );
+      return vColor === colorLower && vSize === sizeLower && vPrint === desiredPrint;
+    });
+    if (strict) return strict;
+  }
+
+  // Second pass: match on color+size only
+  const matches = product.squareVariations.filter((v) => {
+    const vColor = (v.color || "").toLowerCase();
+    const vSize = (v.size || "").toLowerCase();
+    return vColor === colorLower && vSize === sizeLower;
+  });
+
+  if (!matches.length) return null;
+
+  // If only one, return it
+  if (matches.length === 1) return matches[0];
+
+  // If multiple and no desiredPrint, prefer Front if present (stable default)
+  const front = matches.find((v) => {
+    const vPrint = normalizePrintSide(
+      v.printLocation || inferPrintLocationFromName(v.name)
+    );
+    return vPrint === "Front";
+  });
+  if (front) return front;
+
+  return matches[0];
+}
+
+function findSquareVariationId(product, color, size, printSide = null) {
+  const match = findSquareVariation(product, color, size, printSide);
+  if (!match) return null;
+  return match.catalogObjectId || match.id || null;
 }
 
 // Get maximum allowed quantity for a specific cart item based on inventory
@@ -611,16 +634,14 @@ function getMaxAvailableQtyForCartItem(cartItem) {
   const product = products.find((p) => p.id === cartItem.id);
   if (!product) return 9999;
 
-  // Prefer variant-level inventory if we can match a variation
+  // Prefer variant-level inventory if we can match a variation (NOW includes print side)
   if (Array.isArray(product.squareVariations)) {
-    const colorLower = (cartItem.color || "").toLowerCase();
-    const sizeLower = (cartItem.size || "").toLowerCase();
-
-    const variation = product.squareVariations.find((v) => {
-      const vColor = (v.color || "").toLowerCase();
-      const vSize = (v.size || "").toLowerCase();
-      return vColor === colorLower && vSize === sizeLower;
-    });
+    const variation = findSquareVariation(
+      product,
+      cartItem.color,
+      cartItem.size,
+      cartItem.printSide || null
+    );
 
     if (variation) {
       const q = extractQtyFromVariation(variation);
@@ -630,12 +651,10 @@ function getMaxAvailableQtyForCartItem(cartItem) {
     }
   }
 
-  // Fall back to product-level inventory
   if (typeof product.inventory === "number" && product.inventory > 0) {
     return product.inventory;
   }
 
-  // If unknown, treat as effectively unlimited
   return 9999;
 }
 
@@ -645,7 +664,6 @@ function updateCartItemQuantity(index, newQty) {
   if (!item) return;
 
   if (newQty <= 0) {
-    // Remove item if qty goes to 0 or below
     cart.splice(index, 1);
   } else {
     const maxQty = getMaxAvailableQtyForCartItem(item);
@@ -711,7 +729,6 @@ function renderCartDetails() {
 
   cartDetailsEl.innerHTML = linesHtml;
 
-  // Wire up +/-/remove buttons via stock–aware helper
   cartDetailsEl.querySelectorAll(".cart-inc").forEach((btn) => {
     btn.addEventListener("click", () => {
       const idx = parseInt(btn.dataset.index, 10);
@@ -742,39 +759,32 @@ function updateCartDisplay() {
   const totalItems = cart.reduce((sum, item) => sum + item.qty, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
 
-  // ----- Shipping -----
   const shipping = computeShipping(subtotal);
 
-  // ----- State-based tax: MS only, everyone else 0% -----
-  let localTaxRate = 0; // default: no tax
+  let localTaxRate = 0;
   const stateInput = document.getElementById("checkout-state");
   if (stateInput) {
     const stateVal = stateInput.value.trim().toUpperCase();
     if (stateVal === "MS" || stateVal === "MISSISSIPPI") {
-      localTaxRate = SALES_TAX_RATE; // 0.07
+      localTaxRate = SALES_TAX_RATE;
     }
   }
 
-  // ----- 3% Convenience Fee: on (items + shipping) -----
   const feeBase = subtotal + shipping;
   const convenienceFee =
     CONVENIENCE_FEE_RATE > 0
       ? Number((feeBase * CONVENIENCE_FEE_RATE).toFixed(2))
       : 0;
 
-  // ----- Estimated Sales Tax: on (items + shipping), NOT the fee -----
   const taxBase = subtotal + shipping;
   const estimatedTax =
     localTaxRate > 0 ? Number((taxBase * localTaxRate).toFixed(2)) : 0;
 
-  // ----- Grand Total (estimate) -----
   const grandTotal = subtotal + shipping + convenienceFee + estimatedTax;
 
-  // ===== Header bubble (index.html) =====
   if (cartCountEl) cartCountEl.textContent = totalItems;
-  if (cartTotalEl) cartTotalEl.textContent = subtotal.toFixed(2); // no $ here; HTML already has it
+  if (cartTotalEl) cartTotalEl.textContent = subtotal.toFixed(2);
 
-  // ===== Cart page summary (cart.html) =====
   if (cartSummaryItemsEl) cartSummaryItemsEl.textContent = totalItems;
   if (cartSummarySubtotalEl) {
     cartSummarySubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
@@ -792,7 +802,6 @@ function updateCartDisplay() {
     cartGrandTotalEl.textContent = `$${grandTotal.toFixed(2)}`;
   }
 
-  // Free shipping banner logic still based on MERCH subtotal
   if (freeShipBannerEl) {
     if (subtotal <= 0) {
       freeShipBannerEl.textContent = `Free shipping on orders over $${FREE_SHIPPING_THRESHOLD.toFixed(
@@ -830,25 +839,25 @@ function getStockStatus(product) {
   }
 }
 
-// Add-to-cart with stock limit enforcement + variant-specific price/IDs
+// Add-to-cart with stock limit enforcement + variant-specific price/IDs (NOW includes printSide)
 function addToCart(product, color, size, qty, printSide = null) {
   if (qty <= 0) return;
 
-  const normalizedPrintSide = printSide || null;
+  const normalizedPrintSide = normalizePrintSide(printSide) || null;
 
   const existing = cart.find(
     (item) =>
       item.id === product.id &&
       item.color === color &&
       item.size === size &&
-      (item.printSide || null) === normalizedPrintSide
+      (normalizePrintSide(item.printSide) || null) === normalizedPrintSide
   );
 
-  // Build a temporary "cart item" shape for stock lookup
   const tempItem = {
     id: product.id,
     color,
     size,
+    printSide: normalizedPrintSide,
   };
   const maxAvailable = getMaxAvailableQtyForCartItem(tempItem);
 
@@ -864,44 +873,40 @@ function addToCart(product, color, size, qty, printSide = null) {
   }
 
   const amountToAdd = requestedTotal - currentQty;
-  if (amountToAdd <= 0) {
-    // Already at or above max; nothing more to add
-    return;
-  }
+  if (amountToAdd <= 0) return;
 
-  // Look up the matching variation so we can use its price, ID, and SKU
-  const variation = findSquareVariation(product, color, size);
-  let priceDollars = product.price; // fallback
+  // ✅ NEW: match variation using color+size+printSide
+  const variation = findSquareVariation(product, color, size, normalizedPrintSide);
+
+  let priceDollars = product.price;
   let variationId = null;
-  let sku = null; // ✅ NEW
+  let sku = null;
 
   if (variation) {
     if (typeof variation.price === "number") {
       priceDollars = variation.price;
     } else if (variation.price != null) {
       const parsed = Number(variation.price);
-      if (!Number.isNaN(parsed)) {
-        priceDollars = parsed;
-      }
+      if (!Number.isNaN(parsed)) priceDollars = parsed;
     }
 
     variationId = variation.catalogObjectId || variation.id || null;
-    sku = variation.sku || null; // ✅ NEW: capture SKU from Square variation
+    sku = variation.sku || null;
   }
 
   if (existing) {
     existing.qty = requestedTotal;
-    // keep price and IDs synced with current Square variation
     existing.price = priceDollars;
     existing.squareVariationId = variationId;
     existing.catalogObjectId = variationId;
-    existing.sku = sku; // ✅ keep sku in sync too
+    existing.sku = sku;
+    existing.printSide = normalizedPrintSide;
   } else {
     cart.push({
       id: product.id,
       name: product.name,
       type: product.type,
-      price: priceDollars, // dollars, variant-specific
+      price: priceDollars,
       color,
       size,
       printSide: normalizedPrintSide,
@@ -909,7 +914,6 @@ function addToCart(product, color, size, qty, printSide = null) {
       image: product.image || null,
       squareVariationId: variationId,
       catalogObjectId: variationId,
-      // ✅ NEW: store SKU on the cart line
       sku,
     });
   }
@@ -917,7 +921,6 @@ function addToCart(product, color, size, qty, printSide = null) {
   saveCartToStorage();
   updateCartDisplay();
 }
-
 
 // ========== TRANSFORM BACKEND PRODUCTS ==========
 function transformSquareProducts(squareItems) {
@@ -930,7 +933,6 @@ function transformSquareProducts(squareItems) {
     const subcategory = item.subcategory || null;
     const variations = Array.isArray(item.variations) ? item.variations : [];
 
-    // Flags from backend
     const rawFlags = item.flags || {};
     const flags = {
       isNew: !!rawFlags.isNew,
@@ -946,7 +948,6 @@ function transformSquareProducts(squareItems) {
           : "",
     };
 
-    // Decide what text should go on the ribbon
     let ribbonFromFlags = null;
     switch (flags.ribbonType) {
       case "new":
@@ -962,7 +963,6 @@ function transformSquareProducts(squareItems) {
         ribbonFromFlags = null;
     }
 
-    // Backwards-compat with any older meta fields
     const meta = item.meta || {};
     const finalRibbon = ribbonFromFlags || item.ribbon || meta.ribbon || null;
     const isFeatured =
@@ -988,11 +988,10 @@ function transformSquareProducts(squareItems) {
       if (v.size) sizeSet.add(v.size);
       if (v.color) colorSet.add(v.color);
 
-      // derive print location from name if needed
       let printLocation = v.printLocation || inferPrintLocationFromName(v.name);
       if (printLocation) {
-        v.printLocation = printLocation;
-        printLocationSet.add(printLocation);
+        v.printLocation = normalizePrintSide(printLocation);
+        printLocationSet.add(v.printLocation);
       }
 
       const q = extractQtyFromVariation(v);
@@ -1001,17 +1000,14 @@ function transformSquareProducts(squareItems) {
       }
     }
 
-    // Build sizes/colors from the variation sets; if missing, fallback
     let sizes = sizeSet.size > 0 ? Array.from(sizeSet) : ["Standard"];
     let colors = colorSet.size > 0 ? Array.from(colorSet) : ["Default"];
 
-    // Sort sizes/colors using master lists so extended sizes stay in order
     if (typeof sortByMasterOrder === "function") {
       sizes = sortByMasterOrder(sizes, MASTER_SIZES);
       colors = sortByMasterOrder(colors, MASTER_COLORS);
     }
 
-    // If we couldn't compute inventory from variations, fall back to item.inventory if present
     let inventory = totalInventory;
     if (inventory === 0 && typeof item.inventory === "number") {
       inventory = item.inventory;
@@ -1034,7 +1030,6 @@ function transformSquareProducts(squareItems) {
       inventory,
       squareVariations: variations,
       printLocations,
-      // meta flags for UI
       ribbon: finalRibbon,
       isFeatured,
       isNew,
@@ -1060,21 +1055,16 @@ function productMatchesFilters(p, typeFilter, audienceFilter) {
   return matchesType && matchesAudience;
 }
 
-// Helper: get the correct variant price for a given color/size (fallback to product base price)
-function getVariantPrice(product, color, size) {
-  // Uses the shared helper we defined earlier
-  const variation = findSquareVariation(product, color, size);
+// Helper: get the correct variant price for a given color/size/printSide
+function getVariantPrice(product, color, size, printSide = null) {
+  const variation = findSquareVariation(product, color, size, printSide);
   if (variation) {
-    if (typeof variation.price === "number") {
-      return variation.price;
-    } else if (variation.price != null) {
+    if (typeof variation.price === "number") return variation.price;
+    if (variation.price != null) {
       const parsed = Number(variation.price);
-      if (!Number.isNaN(parsed)) {
-        return parsed;
-      }
+      if (!Number.isNaN(parsed)) return parsed;
     }
   }
-  // Fallback: product-level base price
   return product.price || 0;
 }
 
@@ -1089,27 +1079,21 @@ function renderShop() {
   const sizeVal = shopSizeFilterSelect ? shopSizeFilterSelect.value : "";
   const colorVal = shopColorFilterSelect ? shopColorFilterSelect.value : "";
 
-  // Apply filters and hide-online flag
   const filtered = products.filter((p) => {
-    // hideOnline flag
     if (p.flags && p.flags.hideOnline) return false;
 
-    // type + audience (same as kiosk)
     if (!productMatchesFilters(p, activeTypeFilter, activeAudienceFilter)) {
       return false;
     }
 
-    // search by design name
     if (searchTerm && !p.name.toLowerCase().includes(searchTerm)) {
       return false;
     }
 
-    // size filter
     if (sizeVal && !(p.sizes || []).includes(sizeVal)) {
       return false;
     }
 
-    // color filter
     if (colorVal && !(p.colors || []).includes(colorVal)) {
       return false;
     }
@@ -1117,17 +1101,10 @@ function renderShop() {
     return true;
   });
 
-  // Sort: pinToTop first, then featured, then new, then name A–Z
   const sorted = filtered.slice().sort((a, b) => {
-    if (a.pinToTop !== b.pinToTop) {
-      return b.pinToTop - a.pinToTop;
-    }
-    if (a.isFeatured !== b.isFeatured) {
-      return b.isFeatured - a.isFeatured;
-    }
-    if (a.isNew !== b.isNew) {
-      return b.isNew - a.isNew;
-    }
+    if (a.pinToTop !== b.pinToTop) return b.pinToTop - a.pinToTop;
+    if (a.isFeatured !== b.isFeatured) return b.isFeatured - a.isFeatured;
+    if (a.isNew !== b.isNew) return b.isNew - a.isNew;
     return a.name.localeCompare(b.name);
   });
 
@@ -1135,101 +1112,70 @@ function renderShop() {
     const div = document.createElement("div");
     div.className = "product";
 
-    // ===== NEW: build an "in-stock" view of variations =====
     const allVariations = Array.isArray(p.squareVariations)
       ? p.squareVariations
       : [];
 
-    // Only keep variations where qty > 0, if we know qty
     const inStockVariations = allVariations.filter((v) => {
       const q = extractQtyFromVariation(v);
       return typeof q === "number" && q > 0;
     });
 
-    // If we couldn't detect any counts, fall back to all variations
     const variationsForUi =
       inStockVariations.length > 0 ? inStockVariations : allVariations;
 
-    // Build color → size map using only variations that still have stock.
+    // color -> sizes set (in-stock aware)
     const sizesByColor = {};
-    const colorsInStock = new Set();
+    // color|size -> print locations set (in-stock aware)
+    const printByColorSize = {};
 
     if (variationsForUi.length > 0) {
       variationsForUi.forEach((v) => {
         const colorKey = v.color || "Default";
         const sizeLabel = (v.size || "").trim();
-        if (!sizeLabel) return; // ignore blanks
+        if (!sizeLabel) return;
 
-        if (!sizesByColor[colorKey]) {
-          sizesByColor[colorKey] = new Set();
-        }
+        if (!sizesByColor[colorKey]) sizesByColor[colorKey] = new Set();
         sizesByColor[colorKey].add(sizeLabel);
-        colorsInStock.add(colorKey);
+
+        const printLoc = normalizePrintSide(
+          v.printLocation || inferPrintLocationFromName(v.name)
+        );
+        if (printLoc) {
+          const key = `${colorKey}||${sizeLabel}`;
+          if (!printByColorSize[key]) printByColorSize[key] = new Set();
+          printByColorSize[key].add(printLoc);
+        }
       });
     }
 
-    // Fallback: no variation info at all → use product-level colors/sizes
+    // Fallback if no variation mapping
     if (Object.keys(sizesByColor).length === 0) {
       (p.colors || []).forEach((c) => {
         sizesByColor[c] = new Set(p.sizes || []);
-        colorsInStock.add(c);
       });
     }
 
-    // Only show colors that actually have at least one size option
     const colors =
-      colorsInStock.size > 0
-        ? Array.from(colorsInStock)
-        : (p.colors && p.colors.length > 0
-            ? p.colors
-            : Object.keys(sizesByColor) || []);
+      (p.colors && p.colors.length > 0 ? p.colors : Object.keys(sizesByColor)) ||
+      [];
 
     const getSizeOptionsHtml = (colorVal) => {
       const setForColor = sizesByColor[colorVal];
       let sizesArr;
-      if (setForColor && setForColor.size > 0) {
-        sizesArr = Array.from(setForColor);
-      } else {
-        sizesArr = p.sizes || [];
-      }
+      if (setForColor && setForColor.size > 0) sizesArr = Array.from(setForColor);
+      else sizesArr = p.sizes || [];
       return sizesArr.map((s) => `<option value="${s}">${s}</option>`).join("");
     };
 
     const initialColor = colors[0] || Object.keys(sizesByColor)[0] || "";
-
-    // Determine initial size for that color
     let initialSize = "";
     const initialSet = sizesByColor[initialColor];
-    if (initialSet && initialSet.size > 0) {
-      initialSize = Array.from(initialSet)[0];
-    } else if (p.sizes && p.sizes.length > 0) {
-      initialSize = p.sizes[0];
-    }
+    if (initialSet && initialSet.size > 0) initialSize = Array.from(initialSet)[0];
+    else if (p.sizes && p.sizes.length > 0) initialSize = p.sizes[0];
 
-    const initialSizeOptions = getSizeOptionsHtml(initialColor);
-
-    // ----- Build print locations from product.printLocations or variations -----
-    let productPrintLocations = Array.isArray(p.printLocations)
-      ? p.printLocations.slice()
-      : [];
-
-    if (
-      productPrintLocations.length === 0 &&
-      Array.isArray(p.squareVariations)
-    ) {
-      const locSet = new Set();
-      p.squareVariations.forEach((v) => {
-        const loc = v.printLocation || inferPrintLocationFromName(v.name);
-        if (loc) locSet.add(loc);
-      });
-      productPrintLocations = Array.from(locSet);
-    }
-
-    const hasPrintOptions = productPrintLocations.length > 0;
-
-    const stock = getStockStatus(p);
     const typeLabel = p.type === "Other" ? "" : `${p.type} • `;
-
+    const stock = getStockStatus(p);
     const isOutOfStock =
       typeof p.inventory === "number" ? p.inventory <= 0 : false;
 
@@ -1239,12 +1185,30 @@ function renderShop() {
           .replace(/\s+/g, "-")}">${p.ribbon}</div>`
       : "";
 
+    // compute initial print options for color+size
+    function getPrintOptionsFor(colorV, sizeV) {
+      const key = `${colorV}||${sizeV}`;
+      const set = printByColorSize[key];
+      const arr = set && set.size > 0 ? Array.from(set) : (p.printLocations || []);
+      // stable order
+      const order = { "Front": 1, "Front & Back": 2, "Back": 3 };
+      return (arr || []).slice().sort((a, b) => (order[a] || 99) - (order[b] || 99));
+    }
+
+    const initialPrintOptions = getPrintOptionsFor(initialColor, initialSize);
+    const hasPrintOptions = initialPrintOptions.length > 0;
+    const initialPrint = hasPrintOptions ? initialPrintOptions[0] : null;
+
+    const initialPrice = getVariantPrice(p, initialColor, initialSize, initialPrint);
+
+    const initialSizeOptions = getSizeOptionsHtml(initialColor);
+
     const printLabelHtml = hasPrintOptions
       ? `
       <label>
         Print:
         <select class="product-print" ${isOutOfStock ? "disabled" : ""}>
-          ${productPrintLocations
+          ${initialPrintOptions
             .map((loc) => `<option value="${loc}">${loc}</option>`)
             .join("")}
         </select>
@@ -1252,24 +1216,17 @@ function renderShop() {
     `
       : "";
 
-    // Compute initial display price based on initial color/size
-    const initialPrice = getVariantPrice(p, initialColor, initialSize);
-
     div.innerHTML = `
       <div class="product-image-wrap">
         ${ribbonHtml}
         <img
-          src="${
-            p.image || "https://via.placeholder.com/300x300?text=No+Image"
-          }"
+          src="${p.image || "https://via.placeholder.com/300x300?text=No+Image"}"
           alt="${p.name}"
           class="product-img"
         />
       </div>
 
-      ${
-        p.image ? `<button class="product-view-btn">View Larger</button>` : ""
-      }
+      ${p.image ? `<button class="product-view-btn">View Larger</button>` : ""}
 
       <h3 class="product-name">${p.name}</h3>
       <p class="product-type">${typeLabel}$${initialPrice.toFixed(2)}</p>
@@ -1316,76 +1273,105 @@ function renderShop() {
     const viewBtn = div.querySelector(".product-view-btn");
     const priceEl = div.querySelector(".product-type");
 
-    // Helper to sync displayed price with current color/size selection
-    function updateDisplayedPrice() {
-      const selectedColor =
-        (colorSelect && colorSelect.value) || initialColor || "Default";
-
+    function getSelectedColor() {
+      return (colorSelect && colorSelect.value) || initialColor || "Default";
+    }
+    function getSelectedSize() {
       let selectedSize =
         (sizeSelect && sizeSelect.value) || initialSize || "Standard";
-
-      // If size is blank for some reason, try first option in sizeSelect
       if ((!selectedSize || selectedSize === "") && sizeSelect) {
         const opt = sizeSelect.options[0];
         if (opt) selectedSize = opt.value;
       }
-
-      const price = getVariantPrice(p, selectedColor, selectedSize);
-      if (priceEl) {
-        priceEl.textContent = `${typeLabel}$${price.toFixed(2)}`;
-      }
+      return selectedSize;
+    }
+    function getSelectedPrint() {
+      if (!printSelect) return null;
+      return normalizePrintSide(printSelect.value) || null;
     }
 
-    if (colorSelect && sizeSelect) {
-      // Set initial values
-      if (initialColor) colorSelect.value = initialColor;
-      if (initialSize) sizeSelect.value = initialSize;
+    function syncPrintOptions() {
+      if (!printSelect) return;
 
+      const c = getSelectedColor();
+      const s = getSelectedSize();
+      const options = getPrintOptionsFor(c, s);
+
+      // If this size/color has no print options, hide/disable cleanly
+      if (!options || options.length === 0) {
+        printSelect.innerHTML = "";
+        printSelect.disabled = true;
+        return;
+      }
+
+      const previous = normalizePrintSide(printSelect.value);
+      printSelect.disabled = false;
+
+      printSelect.innerHTML = options
+        .map((loc) => `<option value="${loc}">${loc}</option>`)
+        .join("");
+
+      // Keep selection if still valid, otherwise pick first
+      const stillValid = options.some((o) => normalizePrintSide(o) === previous);
+      printSelect.value = stillValid ? previous : options[0];
+    }
+
+    function updateDisplayedPrice() {
+      const c = getSelectedColor();
+      const s = getSelectedSize();
+      const pr = getSelectedPrint();
+      const price = getVariantPrice(p, c, s, pr);
+      if (priceEl) priceEl.textContent = `${typeLabel}$${price.toFixed(2)}`;
+    }
+
+    // Initial set values
+    if (initialColor) colorSelect.value = initialColor;
+    if (initialSize) sizeSelect.value = initialSize;
+    if (printSelect && initialPrint) printSelect.value = initialPrint;
+
+    // Wire events
+    if (colorSelect && sizeSelect) {
       colorSelect.addEventListener("change", () => {
         const selectedColor = colorSelect.value;
         sizeSelect.innerHTML = getSizeOptionsHtml(selectedColor);
 
-        // Pick a reasonable default size for the new color
         const setForColor = sizesByColor[selectedColor];
         const newSize =
           setForColor && setForColor.size > 0
             ? Array.from(setForColor)[0]
             : (p.sizes && p.sizes[0]) || "";
 
-        if (newSize) {
-          sizeSelect.value = newSize;
-        }
+        if (newSize) sizeSelect.value = newSize;
 
+        syncPrintOptions();
         updateDisplayedPrice();
       });
 
       sizeSelect.addEventListener("change", () => {
+        syncPrintOptions();
         updateDisplayedPrice();
       });
     }
 
-    // Initialize price once everything is wired up
+    if (printSelect) {
+      printSelect.addEventListener("change", () => {
+        updateDisplayedPrice();
+      });
+    }
+
+    // Initialize
+    syncPrintOptions();
     updateDisplayedPrice();
 
     if (addBtn && !isOutOfStock) {
       addBtn.addEventListener("click", () => {
-        const color =
-          (colorSelect && colorSelect.value) || colors[0] || "Default";
-        const size =
-          (sizeSelect && sizeSelect.value) || p.sizes[0] || "Standard";
-
-        const printSide = hasPrintOptions
-          ? (printSelect && printSelect.value) ||
-            productPrintLocations[0] ||
-            null
-          : null;
-
+        const color = getSelectedColor();
+        const size = getSelectedSize();
+        const printSide = printSelect ? getSelectedPrint() : null;
         const qty = parseInt(qtyInput.value, 10) || 1;
 
-        // Call the existing addToCart logic (which now uses variant-specific price & IDs)
         addToCart(p, color, size, qty, printSide);
 
-        // Temporary "Added to cart" feedback on the button
         const originalText = addBtn.textContent;
         addBtn.textContent = "Added to cart";
         addBtn.disabled = true;
@@ -1406,7 +1392,6 @@ function renderShop() {
     productGrid.appendChild(div);
   });
 }
-
 
 function initShop() {
   if (!productGrid) return;
@@ -1444,23 +1429,16 @@ function initShop() {
     });
   }
 
-  // ---- Shop search / size / color filters (mirror kiosk) ----
-  if (shopSearchInput) {
-    shopSearchInput.addEventListener("input", renderShop);
-  }
-  if (shopSizeFilterSelect) {
-    shopSizeFilterSelect.addEventListener("change", renderShop);
-  }
-  if (shopColorFilterSelect) {
-    shopColorFilterSelect.addEventListener("change", renderShop);
-  }
+  if (shopSearchInput) shopSearchInput.addEventListener("input", renderShop);
+  if (shopSizeFilterSelect) shopSizeFilterSelect.addEventListener("change", renderShop);
+  if (shopColorFilterSelect) shopColorFilterSelect.addEventListener("change", renderShop);
+
   if (shopClearFiltersBtn) {
     shopClearFiltersBtn.addEventListener("click", () => {
       if (shopSearchInput) shopSearchInput.value = "";
       if (shopSizeFilterSelect) shopSizeFilterSelect.value = "";
       if (shopColorFilterSelect) shopColorFilterSelect.value = "";
 
-      // Reset type chips
       activeTypeFilter = "all";
       if (categoryFilterContainer) {
         const buttons = categoryFilterContainer.querySelectorAll("button");
@@ -1471,7 +1449,6 @@ function initShop() {
         if (allBtn) allBtn.classList.add("active");
       }
 
-      // Reset audience chips
       activeAudienceFilter = "all";
       if (audienceFilterContainer) {
         const buttons = audienceFilterContainer.querySelectorAll("button");
@@ -1518,21 +1495,13 @@ function sortByMasterOrder(values, masterList) {
 
 function getAllAvailableSizesFromProducts() {
   const set = new Set();
-  products.forEach((p) => {
-    (p.sizes || []).forEach((s) => {
-      if (s) set.add(s);
-    });
-  });
+  products.forEach((p) => (p.sizes || []).forEach((s) => s && set.add(s)));
   return sortByMasterOrder(Array.from(set), MASTER_SIZES);
 }
 
 function getAllAvailableColorsFromProducts() {
   const set = new Set();
-  products.forEach((p) => {
-    (p.colors || []).forEach((c) => {
-      if (c) set.add(c);
-    });
-  });
+  products.forEach((p) => (p.colors || []).forEach((c) => c && set.add(c)));
   return sortByMasterOrder(Array.from(set), MASTER_COLORS);
 }
 
@@ -1545,8 +1514,7 @@ function populateShopFilterOptions() {
     first.textContent = "All Sizes";
     shopSizeFilterSelect.appendChild(first);
 
-    const sizes = getAllAvailableSizesFromProducts();
-    sizes.forEach((s) => {
+    getAllAvailableSizesFromProducts().forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s;
       opt.textContent = s;
@@ -1561,8 +1529,7 @@ function populateShopFilterOptions() {
     first.textContent = "All Colors";
     shopColorFilterSelect.appendChild(first);
 
-    const colors = getAllAvailableColorsFromProducts();
-    colors.forEach((c) => {
+    getAllAvailableColorsFromProducts().forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c;
       opt.textContent = c;
@@ -1579,8 +1546,7 @@ function populateKioskFilterOptions() {
     first.textContent = "All Sizes";
     kioskSizeFilterSelect.appendChild(first);
 
-    const sizes = getAllAvailableSizesFromProducts();
-    sizes.forEach((s) => {
+    getAllAvailableSizesFromProducts().forEach((s) => {
       const opt = document.createElement("option");
       opt.value = s;
       opt.textContent = s;
@@ -1595,8 +1561,7 @@ function populateKioskFilterOptions() {
     first.textContent = "All Colors";
     kioskColorFilterSelect.appendChild(first);
 
-    const colors = getAllAvailableColorsFromProducts();
-    colors.forEach((c) => {
+    getAllAvailableColorsFromProducts().forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c;
       opt.textContent = c;
@@ -1613,24 +1578,15 @@ function getKioskFilteredProducts() {
   const colorVal = kioskColorFilterSelect ? kioskColorFilterSelect.value : "";
 
   return products.filter((p) => {
-    // respect hideKiosk flag
     if (p.flags && p.flags.hideKiosk) return false;
 
     if (!productMatchesFilters(p, kioskTypeFilter, kioskAudienceFilter)) {
       return false;
     }
 
-    if (search && !p.name.toLowerCase().includes(search)) {
-      return false;
-    }
-
-    if (sizeVal && !p.sizes.includes(sizeVal)) {
-      return false;
-    }
-
-    if (colorVal && !p.colors.includes(colorVal)) {
-      return false;
-    }
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    if (sizeVal && !p.sizes.includes(sizeVal)) return false;
+    if (colorVal && !p.colors.includes(colorVal)) return false;
 
     return true;
   });
@@ -1647,39 +1603,45 @@ function renderKiosk() {
     const div = document.createElement("div");
     div.className = "kiosk-item";
 
-    // ----- Ribbon (same style as shop) -----
     const ribbonHtml = p.ribbon
       ? `<div class="product-ribbon product-ribbon-${p.ribbon
           .toLowerCase()
           .replace(/\s+/g, "-")}">${p.ribbon}</div>`
       : "";
 
-    // Build size/qty maps from variations
+    // color -> sizes set
     const sizesByColor = {};
-    const qtyByColorSize = {};
+    // color|size -> print set
+    const printByColorSize = {};
+    // color|size|print -> qty
+    const qtyByColorSizePrint = {};
 
     if (Array.isArray(p.squareVariations) && p.squareVariations.length > 0) {
       p.squareVariations.forEach((v) => {
         const colorKey = v.color || "Default";
-
-        // Only use real sizes; skip blank ones so we don't invent "Standard"
         const sizeRaw = (v.size || "").trim();
-        if (!sizeRaw) {
-          return; // skip this variation if it doesn't have a size label
-        }
-        const sizeKey = sizeRaw;
+        if (!sizeRaw) return;
 
-        if (!sizesByColor[colorKey]) {
-          sizesByColor[colorKey] = new Set();
-        }
-        sizesByColor[colorKey].add(sizeKey);
+        if (!sizesByColor[colorKey]) sizesByColor[colorKey] = new Set();
+        sizesByColor[colorKey].add(sizeRaw);
 
-        const q = extractQtyFromVariation(v);
-        if (!qtyByColorSize[colorKey]) {
-          qtyByColorSize[colorKey] = {};
-        }
-        if (typeof q === "number") {
-          qtyByColorSize[colorKey][sizeKey] = q;
+        const printLoc = normalizePrintSide(
+          v.printLocation || inferPrintLocationFromName(v.name)
+        );
+
+        if (printLoc) {
+          const key = `${colorKey}||${sizeRaw}`;
+          if (!printByColorSize[key]) printByColorSize[key] = new Set();
+          printByColorSize[key].add(printLoc);
+
+          const q = extractQtyFromVariation(v);
+          const k2 = `${colorKey}||${sizeRaw}||${printLoc}`;
+          if (typeof q === "number") qtyByColorSizePrint[k2] = q;
+        } else {
+          // no print -> still store qty by size if we can, under null
+          const q = extractQtyFromVariation(v);
+          const k2 = `${colorKey}||${sizeRaw}||`;
+          if (typeof q === "number") qtyByColorSizePrint[k2] = q;
         }
       });
     }
@@ -1691,9 +1653,8 @@ function renderKiosk() {
     }
 
     const colors =
-      p.colors && p.colors.length > 0
-        ? p.colors
-        : Object.keys(sizesByColor) || [];
+      (p.colors && p.colors.length > 0 ? p.colors : Object.keys(sizesByColor)) ||
+      [];
 
     const colorOptions = colors
       .map((c) => `<option value="${c}">${c}</option>`)
@@ -1708,54 +1669,45 @@ function renderKiosk() {
         .join("");
     };
 
-    const initialColor = colors[0] || Object.keys(sizesByColor)[0] || "";
-    const initialSizeOptions = getSizeOptionsHtmlForColor(initialColor);
+    function getPrintOptionsFor(colorV, sizeV) {
+      const key = `${colorV}||${sizeV}`;
+      const set = printByColorSize[key];
+      const arr = set && set.size > 0 ? Array.from(set) : (p.printLocations || []);
+      const order = { "Front": 1, "Front & Back": 2, "Back": 3 };
+      return (arr || []).slice().sort((a, b) => (order[a] || 99) - (order[b] || 99));
+    }
 
-    function getQtyText(colorVal, sizeVal) {
-      const byColor = qtyByColorSize[colorVal];
-      if (!byColor) return "Ask for availability";
-      const q = byColor[sizeVal];
+    function getQtyText(colorV, sizeV, printV) {
+      const pr = normalizePrintSide(printV) || "";
+      const key = `${colorV}||${sizeV}||${pr}`;
+      const q = qtyByColorSizePrint[key];
       if (typeof q === "number") return q;
       return "Ask for availability";
     }
 
-    // Pick initial size
+    const initialColor = colors[0] || Object.keys(sizesByColor)[0] || "";
     let initialSize = "";
     const initialSet = sizesByColor[initialColor];
-    if (initialSet && initialSet.size > 0) {
-      initialSize = Array.from(initialSet)[0];
-    } else if (p.sizes && p.sizes.length > 0) {
-      initialSize = p.sizes[0];
-    }
+    if (initialSet && initialSet.size > 0) initialSize = Array.from(initialSet)[0];
+    else if (p.sizes && p.sizes.length > 0) initialSize = p.sizes[0];
+
+    const initialSizeOptions = getSizeOptionsHtmlForColor(initialColor);
+
+    const initialPrintOptions = getPrintOptionsFor(initialColor, initialSize);
+    const hasPrintOptions = initialPrintOptions.length > 0;
+    const initialPrint = hasPrintOptions ? initialPrintOptions[0] : null;
 
     const initialQtyText =
       initialColor && initialSize
-        ? getQtyText(initialColor, initialSize)
+        ? getQtyText(initialColor, initialSize, initialPrint)
         : "Ask for availability";
-
-    // Build print locations for kiosk display
-    let kioskPrintLocations = Array.isArray(p.printLocations)
-      ? p.printLocations.slice()
-      : [];
-    if (
-      kioskPrintLocations.length === 0 &&
-      Array.isArray(p.squareVariations)
-    ) {
-      const locSet = new Set();
-      p.squareVariations.forEach((v) => {
-        const loc = v.printLocation || inferPrintLocationFromName(v.name);
-        if (loc) locSet.add(loc);
-      });
-      kioskPrintLocations = Array.from(locSet);
-    }
-    const hasPrintOptions = kioskPrintLocations.length > 0;
 
     const printHtml = hasPrintOptions
       ? `
         <p>
           <strong>Print:</strong>
           <select class="kiosk-print">
-            ${kioskPrintLocations
+            ${initialPrintOptions
               .map((loc) => `<option value="${loc}">${loc}</option>`)
               .join("")}
           </select>
@@ -1767,17 +1719,13 @@ function renderKiosk() {
       <div class="product-image-wrap">
         ${ribbonHtml}
         <img
-          src="${
-            p.image || "https://via.placeholder.com/300x300?text=No+Image"
-          }"
+          src="${p.image || "https://via.placeholder.com/300x300?text=No+Image"}"
           alt="${p.name}"
           class="product-img"
         />
       </div>
 
-      ${
-        p.image ? `<button class="product-view-btn">View Larger</button>` : ""
-      }
+      ${p.image ? `<button class="product-view-btn">View Larger</button>` : ""}
 
       <h2 class="product-name kiosk-name">${p.name}</h2>
 
@@ -1803,18 +1751,43 @@ function renderKiosk() {
 
     const colorSelect = div.querySelector(".kiosk-color");
     const sizeSelect = div.querySelector(".kiosk-size");
+    const printSelect = div.querySelector(".kiosk-print");
     const qtyEl = div.querySelector(".kiosk-qty");
     const viewBtn = div.querySelector(".product-view-btn");
 
     if (colorSelect && sizeSelect && qtyEl) {
-      // initialise values
       if (initialColor) colorSelect.value = initialColor;
       if (initialSize) sizeSelect.value = initialSize;
+      if (printSelect && initialPrint) printSelect.value = initialPrint;
+
+      const syncPrint = () => {
+        if (!printSelect) return;
+        const c = colorSelect.value;
+        const s = sizeSelect.value;
+        const options = getPrintOptionsFor(c, s);
+
+        if (!options || options.length === 0) {
+          printSelect.innerHTML = "";
+          printSelect.disabled = true;
+          return;
+        }
+
+        const prev = normalizePrintSide(printSelect.value);
+        printSelect.disabled = false;
+
+        printSelect.innerHTML = options
+          .map((loc) => `<option value="${loc}">${loc}</option>`)
+          .join("");
+
+        const stillValid = options.some((o) => normalizePrintSide(o) === prev);
+        printSelect.value = stillValid ? prev : options[0];
+      };
 
       const updateQty = () => {
         const c = colorSelect.value;
         const s = sizeSelect.value;
-        const qtyText = getQtyText(c, s);
+        const pr = printSelect ? normalizePrintSide(printSelect.value) : null;
+        const qtyText = getQtyText(c, s, pr);
         qtyEl.innerHTML = `<strong>Qty Available:</strong> ${qtyText}`;
       };
 
@@ -1828,10 +1801,21 @@ function renderKiosk() {
             ? Array.from(setForColor)[0]
             : (p.sizes && p.sizes[0]) || "";
         sizeSelect.value = newSize;
+
+        syncPrint();
         updateQty();
       });
 
-      sizeSelect.addEventListener("change", updateQty);
+      sizeSelect.addEventListener("change", () => {
+        syncPrint();
+        updateQty();
+      });
+
+      if (printSelect) {
+        printSelect.addEventListener("change", updateQty);
+      }
+
+      syncPrint();
       updateQty();
     }
 
@@ -1877,15 +1861,10 @@ function initKioskFilters() {
     });
   }
 
-  if (kioskSearchInput) {
-    kioskSearchInput.addEventListener("input", renderKiosk);
-  }
-  if (kioskSizeFilterSelect) {
-    kioskSizeFilterSelect.addEventListener("change", renderKiosk);
-  }
-  if (kioskColorFilterSelect) {
-    kioskColorFilterSelect.addEventListener("change", renderKiosk);
-  }
+  if (kioskSearchInput) kioskSearchInput.addEventListener("input", renderKiosk);
+  if (kioskSizeFilterSelect) kioskSizeFilterSelect.addEventListener("change", renderKiosk);
+  if (kioskColorFilterSelect) kioskColorFilterSelect.addEventListener("change", renderKiosk);
+
   if (kioskClearFiltersBtn) {
     kioskClearFiltersBtn.addEventListener("click", () => {
       if (kioskSearchInput) kioskSearchInput.value = "";
@@ -1936,7 +1915,6 @@ function hideKioskSplash() {
 function resetKioskInactivityTimer() {
   if (!kioskGrid) return;
 
-  // If splash is currently showing, don't schedule a new one yet
   if (kioskSplash && !kioskSplash.classList.contains("hidden")) {
     return;
   }
@@ -1953,10 +1931,8 @@ function resetKioskInactivityTimer() {
 function initKioskInactivityWatcher() {
   if (!kioskGrid) return;
 
-  // Show splash immediately on kiosk load
   showKioskSplash();
 
-  // Clicking the splash hides it, renders grid, and starts the timer
   if (kioskSplash) {
     kioskSplash.addEventListener("click", () => {
       hideKioskSplash();
@@ -1965,7 +1941,6 @@ function initKioskInactivityWatcher() {
     });
   }
 
-  // Any activity while browsing resets the inactivity timer
   ["click", "mousemove", "keydown", "touchstart", "scroll"].forEach((evt) => {
     document.addEventListener(evt, resetKioskInactivityTimer);
   });
@@ -2018,9 +1993,7 @@ async function loadProducts() {
 
 // ========== INITIALIZE ==========
 document.addEventListener("DOMContentLoaded", () => {
-  // Init custom alert modal first so all showSpcAlert calls work
   initSpcAlertModal();
-
   loadAnnouncementBanner();
 
   if (typeof initImageModalHandlers === "function") {
@@ -2035,13 +2008,11 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCartDisplay();
   }
 
-  // ----- Attach checkout handler -----
   const checkoutBtn = document.getElementById("checkout-btn");
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", handleCheckoutClick);
   }
 
-  // ----- Recalculate tax when the shipping state changes -----
   const checkoutStateInput = document.getElementById("checkout-state");
   if (checkoutStateInput) {
     checkoutStateInput.addEventListener("input", updateCartDisplay);
@@ -2049,7 +2020,6 @@ document.addEventListener("DOMContentLoaded", () => {
     checkoutStateInput.addEventListener("blur", updateCartDisplay);
   }
 
-  // ===== MOVE-TO-TOP BUTTON (GLOBAL) =====
   const moveToTopBtn = document.getElementById("moveToTopBtn");
   if (moveToTopBtn) {
     const toggleMoveToTop = () => {
@@ -2061,7 +2031,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     window.addEventListener("scroll", toggleMoveToTop);
-    // run once
     toggleMoveToTop();
 
     moveToTopBtn.addEventListener("click", () => {
@@ -2077,21 +2046,18 @@ document.addEventListener("DOMContentLoaded", () => {
 function spcRecalcCartShipping() {
   const cartPage = document.querySelector(".cart-page");
   if (!cartPage) return;
-
-  // Single source of truth for all totals (shipping + fee + tax + banner)
   updateCartDisplay();
 }
 
 async function spcInitCartShipping() {
   const cartPage = document.querySelector(".cart-page");
-  if (!cartPage) return; // only on cart.html
+  if (!cartPage) return;
 
   try {
     const res = await fetch(`${API_BASE}/admin/config`);
     if (res.ok) {
       const data = await res.json();
 
-      // These often come back as strings, so coerce safely
       if (data.shippingFlatRate != null && !isNaN(data.shippingFlatRate)) {
         SHIPPING_FLAT_RATE = parseFloat(data.shippingFlatRate);
       }
@@ -2104,12 +2070,9 @@ async function spcInitCartShipping() {
     }
   } catch (err) {
     console.error("Failed to load shipping settings for cart:", err);
-    // fall back to defaults (6.95 / 75) if config fails
   }
 
-  // Initial calc now that shipping settings are loaded
   spcRecalcCartShipping();
 }
 
-// Register AFTER your main DOMContentLoaded in this file
 document.addEventListener("DOMContentLoaded", spcInitCartShipping);
